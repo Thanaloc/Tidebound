@@ -1,6 +1,8 @@
-// Base ocean surface shader for URP.
-// Phase 1A: depth-based color blend + fresnel. Simple but solid foundation.
-// We'll layer on refraction, reflection, SSS, and foam in Phase 1D.
+// Ocean surface shader for URP — supports both Gerstner (CPU) and FFT (GPU) displacement.
+//
+// In Gerstner mode: vertices are displaced by C# code, shader just does coloring.
+// In FFT mode: vertex shader samples displacement textures and moves vertices on the GPU.
+// This avoids the CPU readback bottleneck entirely.
 Shader "PirateSeas/OceanSurface"
 {
     Properties
@@ -9,6 +11,15 @@ Shader "PirateSeas/OceanSurface"
         _DeepColor ("Deep Color", Color) = (0.02, 0.1, 0.2, 1)
         _FresnelPower ("Fresnel Power", Range(0, 5)) = 3
         _DepthDistance ("Depth Fade Distance", Float) = 10
+
+        // FFT displacement maps (set from C# — not visible in inspector)
+        [HideInInspector] _HeightMap ("Height Map", 2D) = "black" {}
+        [HideInInspector] _DisplaceXMap ("Displace X Map", 2D) = "black" {}
+        [HideInInspector] _DisplaceZMap ("Displace Z Map", 2D) = "black" {}
+        [HideInInspector] _MeshSize ("Mesh Size", Float) = 200
+
+        _DisplacementStrength ("Displacement Strength", Range(0, 50)) = 20
+        _ChoppyStrength ("Choppy Strength", Range(0, 5)) = 1.5
     }
 
     SubShader
@@ -40,7 +51,14 @@ Shader "PirateSeas/OceanSurface"
                 half4 _DeepColor;
                 half _FresnelPower;
                 float _DepthDistance;
+                float _MeshSize;
+                float _DisplacementStrength;
+                float _ChoppyStrength;
             CBUFFER_END
+
+            TEXTURE2D(_HeightMap);      SAMPLER(sampler_HeightMap);
+            TEXTURE2D(_DisplaceXMap);    SAMPLER(sampler_DisplaceXMap);
+            TEXTURE2D(_DisplaceZMap);    SAMPLER(sampler_DisplaceZMap);
 
             struct Attributes
             {
@@ -62,35 +80,60 @@ Shader "PirateSeas/OceanSurface"
             {
                 Varyings output;
 
-                VertexPositionInputs posInputs = GetVertexPositionInputs(input.positionOS.xyz);
-                VertexNormalInputs normInputs = GetVertexNormalInputs(input.normalOS);
+                // Sample FFT displacement textures using the UV
+                float2 uv = input.uv;
+
+                // The IFFT output is a complex number — the .x (real part) is what we want.
+                float height = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv, 0).x;
+                float displaceX = SAMPLE_TEXTURE2D_LOD(_DisplaceXMap, sampler_DisplaceXMap, uv, 0).x;
+                float displaceZ = SAMPLE_TEXTURE2D_LOD(_DisplaceZMap, sampler_DisplaceZMap, uv, 0).x;
+
+                // Apply displacement in object space
+                float3 displaced = input.positionOS.xyz;
+                displaced.y += height * _DisplacementStrength;
+                displaced.x += displaceX * _ChoppyStrength;
+                displaced.z += displaceZ * _ChoppyStrength;
+
+                // Compute normal from height map neighbors (finite differences)
+                float texelSize = 1.0 / 256.0;
+                float hL = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv + float2(-texelSize, 0), 0).x;
+                float hR = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv + float2(texelSize, 0), 0).x;
+                float hD = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv + float2(0, -texelSize), 0).x;
+                float hU = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv + float2(0, texelSize), 0).x;
+
+                float3 computedNormal = normalize(float3(
+                    (hL - hR) * _DisplacementStrength,
+                    2.0,
+                    (hD - hU) * _DisplacementStrength
+                ));
+
+                // Use computed normal if FFT is active (height != 0), otherwise use mesh normal
+                float3 normalOS = (abs(height) > 0.0001) ? computedNormal : input.normalOS;
+
+                VertexPositionInputs posInputs = GetVertexPositionInputs(displaced);
+                VertexNormalInputs normInputs = GetVertexNormalInputs(normalOS);
 
                 output.positionCS = posInputs.positionCS;
                 output.normalWS = normInputs.normalWS;
                 output.viewDirWS = GetWorldSpaceNormalizeViewDir(posInputs.positionWS);
                 output.screenPos = ComputeScreenPos(posInputs.positionCS);
-                output.uv = input.uv;
+                output.uv = uv;
 
                 return output;
             }
 
             half4 frag(Varyings input) : SV_Target
             {
-                // Fresnel: water gets more reflective at grazing angles.
-                // This is what gives the ocean that sense of depth and shine.
                 float3 normal = normalize(input.normalWS);
                 float3 viewDir = normalize(input.viewDirWS);
                 float fresnel = pow(1.0 - saturate(dot(normal, viewDir)), _FresnelPower);
 
-                // Depth fade: compare the water surface depth with whatever is behind it.
-                // Deeper = darker color. This sells the shallow-to-deep transition near shores.
                 float2 screenUV = input.screenPos.xy / input.screenPos.w;
                 float sceneDepthRaw = SampleSceneDepth(screenUV);
                 float sceneDepth = LinearEyeDepth(sceneDepthRaw, _ZBufferParams);
                 float waterDepth = LinearEyeDepth(input.positionCS.z / input.positionCS.w, _ZBufferParams);
                 float depthDiff = saturate((sceneDepth - waterDepth) / _DepthDistance);
 
-                // Blend shallow/deep based on depth, then add a subtle bright tint from fresnel
                 half4 waterColor = lerp(_ShallowColor, _DeepColor, depthDiff);
                 waterColor.rgb = lerp(waterColor.rgb, half3(0.8, 0.9, 1.0), fresnel * 0.3);
 

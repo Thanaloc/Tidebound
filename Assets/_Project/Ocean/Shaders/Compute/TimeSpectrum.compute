@@ -1,0 +1,85 @@
+// Animates the spectrum every frame.
+//
+// Takes the static h0(k) and produces h(k,t) — the time-varying spectrum.
+// Each frequency rotates in the complex plane at its own speed (dispersion relation).
+//
+// h(k, t) = h0(k) * e^(iwt) + h0*(-k) * e^(-iwt)
+//
+// We compute 3 spectra in one pass: Height (Y), Displacement X, Displacement Z.
+
+#pragma kernel EvolveSpectrum
+
+// Input: static spectrum from SpectrumGenerator
+// Declared as RW because the source texture has enableRandomWrite (UAV).
+// We only read from it here, but the binding requires RW.
+RWTexture2D<float4> _H0Texture;
+
+// Outputs: time-evolved complex spectra
+RWTexture2D<float2> _HeightSpectrum;
+RWTexture2D<float2> _DisplaceXSpectrum;
+RWTexture2D<float2> _DisplaceZSpectrum;
+
+uint _Resolution;
+float _MeshSize;
+float _Time;
+
+static const float G = 9.81;
+static const float PI = 3.14159265;
+
+float2 complexMul(float2 a, float2 b)
+{
+    return float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+[numthreads(8, 8, 1)]
+void EvolveSpectrum(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _Resolution || id.y >= _Resolution) return;
+
+    float halfN = _Resolution * 0.5;
+
+    float2 waveVector = float2(
+        (float(id.x) - halfN) * 2.0 * PI / _MeshSize,
+        (float(id.y) - halfN) * 2.0 * PI / _MeshSize
+    );
+
+    float k = length(waveVector);
+
+    float omega = sqrt(G * max(k, 0.0001));
+
+    float cosT = cos(omega * _Time);
+    float sinT = sin(omega * _Time);
+    float2 eiwt = float2(cosT, sinT);
+    float2 eiwtNeg = float2(cosT, -sinT);
+
+    float4 h0Data = _H0Texture[id.xy];
+    float2 h0 = h0Data.xy;
+    float2 h0Conj = h0Data.zw;
+
+    float2 ht = complexMul(h0, eiwt) + complexMul(h0Conj, eiwtNeg);
+    
+    // fftshift: move DC from center to corner for the IFFT
+    float shift = ((id.x + id.y) % 2 == 0) ? 1.0 : -1.0;
+    ht *= shift;
+
+    _HeightSpectrum[id.xy] = ht;
+
+    if (k < 0.0001)
+    {
+        _DisplaceXSpectrum[id.xy] = float2(0, 0);
+        _DisplaceZSpectrum[id.xy] = float2(0, 0);
+        return;
+    }
+
+    float aX = waveVector.x / k;
+    float2 bX = float2(ht.x * aX, ht.y * aX);
+    float2 disX = float2(bX.y, -bX.x);
+    disX *= shift;
+    _DisplaceXSpectrum[id.xy] = disX;
+
+    float aZ = waveVector.y / k;
+    float2 bZ = float2(ht.x * aZ, ht.y * aZ);
+    float2 disZ = float2(bZ.y, -bZ.x);
+    disZ *= shift;
+    _DisplaceZSpectrum[id.xy] = disZ;
+}

@@ -10,17 +10,16 @@ namespace PirateSeas.Ocean
     public class OceanSettings : ScriptableObject
     {
         [Header("Mesh")]
-        [Tooltip("Vertices per side. 128 means 128x128 = ~16K verts. Good starting point.")]
+        [Tooltip("Vertices per side. 256 for FFT (must be power of 2).")]
         [Range(32, 512)]
-        public int meshResolution = 128;
+        public int meshResolution = 256;
 
         [Tooltip("Total size of the water plane in world units.")]
         public float meshSize = 200f;
 
-        [Header("Gerstner Waves")]
+        [Header("Gerstner Waves (fallback)")]
         public GerstnerWaveConfig[] waves = new GerstnerWaveConfig[]
         {
-            // Big slow swell
             new GerstnerWaveConfig
             {
                 amplitude = 1.0f,
@@ -29,7 +28,6 @@ namespace PirateSeas.Ocean
                 direction = new Vector2(1f, 0f),
                 steepness = 0.4f
             },
-            // Medium cross-wave for variety
             new GerstnerWaveConfig
             {
                 amplitude = 0.5f,
@@ -38,7 +36,6 @@ namespace PirateSeas.Ocean
                 direction = new Vector2(0.7f, 0.7f),
                 steepness = 0.3f
             },
-            // Small choppy detail
             new GerstnerWaveConfig
             {
                 amplitude = 0.25f,
@@ -49,6 +46,29 @@ namespace PirateSeas.Ocean
             }
         };
 
+        [Header("FFT Ocean")]
+        [Tooltip("Texture resolution for FFT. Must be a power of 2. 256 is the sweet spot.")]
+        public int fftResolution = 256;
+
+        [Tooltip("How intense the waves are overall.")]
+        [Range(0.0001f, 0.01f)]
+        public float spectrumScale = 0.0005f;
+
+        [Tooltip("Wind speed in m/s. Higher = bigger waves.")]
+        [Range(1f, 40f)]
+        public float windSpeed = 15f;
+
+        [Tooltip("Wind direction (gets normalized).")]
+        public Vector2 windDirection = new Vector2(1f, 0.5f);
+
+        [Tooltip("How much waves align with wind. 0 = all directions, 6+ = very directional.")]
+        [Range(0f, 10f)]
+        public float windDependency = 2f;
+
+        [Tooltip("Suppresses tiny waves below this size (meters). Removes high-freq noise.")]
+        [Range(0f, 5f)]
+        public float smallWaveCutoff = 0.1f;
+
         [Header("Visual")]
         public Color shallowColor = new Color(0.1f, 0.6f, 0.7f, 0.9f);
         public Color deepColor = new Color(0.02f, 0.1f, 0.2f, 1f);
@@ -58,9 +78,6 @@ namespace PirateSeas.Ocean
         public float fresnelPower = 3f;
     }
 
-    /// <summary>
-    /// One Gerstner wave layer. Stack several with different params for a convincing ocean.
-    /// </summary>
     [System.Serializable]
     public struct GerstnerWaveConfig
     {

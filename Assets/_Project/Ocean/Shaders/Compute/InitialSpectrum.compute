@@ -1,0 +1,136 @@
+// Generates the initial ocean spectrum h0(k) using the Phillips model.
+// Runs ONCE at startup (or when wind params change).
+//
+// Each pixel represents one wave frequency+direction pair.
+// The output is a complex number (float4: xy = h0(k), zw = h0(-k) conjugate).
+// We store both h0(k) and h0*(-k) together because the time evolution step
+// needs both to produce a hermitian-symmetric spectrum (= real-valued ocean surface).
+
+#pragma kernel GenerateInitialSpectrum
+
+// Output: RGBA float texture
+// .xy = h0(k)  — complex amplitude for wave vector k
+// .zw = h0(-k) — complex conjugate for wave vector -k
+RWTexture2D<float4> _H0Texture;
+
+// Parameters pushed from C#
+uint _Resolution;         // texture size (256)
+float _MeshSize;          // world-space ocean patch size
+float _SpectrumScale;     // amplitude multiplier (A in Phillips)
+float _WindSpeed;         // m/s
+float2 _WindDirection;    // normalized
+float _WindDependency;    // directional spread exponent
+float _SmallWaveCutoff;   // suppress wavelengths below this
+
+// Gravity constant
+static const float G = 9.81;
+static const float PI = 3.14159265;
+
+// ─── Deterministic hash-based random ───
+// We can't use C#'s Random on the GPU, so we hash the pixel coordinates
+// to get reproducible pseudo-random numbers. Same seed = same ocean.
+
+uint hash(uint x)
+{
+    x ^= x >> 16;
+    x *= 0x45d9f3b;
+    x ^= x >> 16;
+    x *= 0x45d9f3b;
+    x ^= x >> 16;
+    return x;
+}
+
+// Returns a uniform random float in [0, 1) from a seed
+float uniformRandom(uint seed)
+{
+    return float(hash(seed)) / 4294967295.0;
+}
+
+// Box-Muller transform: turns 2 uniform randoms into 2 Gaussian randoms
+// Returns (gaussian1, gaussian2)
+float2 gaussianRandom(uint2 pixel)
+{
+    uint seed1 = hash(pixel.x + _Resolution * pixel.y);
+    uint seed2 = hash(seed1 + 1);
+
+    float u1 = max(uniformRandom(seed1), 0.0001); // avoid log(0)
+    float u2 = uniformRandom(seed2);
+
+    float r = sqrt(-2.0 * log(u1));
+    float theta = 2.0 * PI * u2;
+
+    return float2(r * cos(theta), r * sin(theta));
+}
+
+// ─── Phillips Spectrum ───
+// Models the statistical distribution of ocean wave energy.
+//
+// P(k) = A * exp(-1 / (kL)²) / k⁴ * |k̂ · ŵ|²
+//
+// Where:
+//   k = wave vector magnitude
+//   L = V² / g (largest wave the wind can produce)
+//   ŵ = wind direction
+//   A = overall amplitude scale
+//   The |k̂ · ŵ|² term makes waves align with the wind
+
+float phillipsSpectrum(float2 waveVector)
+{
+    float k = length(waveVector);
+    if (k < 0.0001) return 0.0;
+
+    float k2 = k * k;
+    float k4 = k2 * k2;
+
+    // L = largest possible wavelength from wind
+    float L = _WindSpeed * _WindSpeed / G;
+    float L2 = L * L;
+
+    // Core Phillips formula
+    float exponential = exp(-1.0 / (k2 * L2));
+    float phillips = _SpectrumScale * exponential / k4;
+
+    // Directional term: waves travel in the wind direction
+    float2 kNorm = waveVector / k;
+    float kDotW = dot(kNorm, _WindDirection);
+    float directional = pow(abs(kDotW), _WindDependency);
+
+    // Suppress waves going against the wind (optional, makes it more realistic)
+    if (kDotW < 0.0) directional *= 0.07;
+
+    // Suppress tiny waves (removes jittery high-freq noise)
+    float smallWaveSuppression = exp(-k2 * _SmallWaveCutoff * _SmallWaveCutoff);
+
+    return phillips * directional * smallWaveSuppression;
+}
+
+[numthreads(8, 8, 1)]
+void GenerateInitialSpectrum(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _Resolution || id.y >= _Resolution) return;
+
+    // Convert pixel coords to wave vector k
+    // Center the spectrum: pixel 0 = -N/2, pixel N-1 = N/2-1
+    float halfN = _Resolution * 0.5;
+    float2 waveVector = float2(
+        (float(id.x) - halfN) * 2.0 * PI / _MeshSize,
+        (float(id.y) - halfN) * 2.0 * PI / _MeshSize
+    );
+
+    // Phillips energy for k and -k
+    float spectrum = phillipsSpectrum(waveVector);
+    float spectrumConj = phillipsSpectrum(-waveVector);
+
+    // Random complex amplitude (Box-Muller gaussian)
+    float2 gauss1 = gaussianRandom(id.xy);
+    float2 gauss2 = gaussianRandom(id.xy + uint2(_Resolution, _Resolution));
+
+    // h0(k) = 1/sqrt(2) * gaussian * sqrt(P(k))
+    float2 h0 = gauss1 * sqrt(spectrum * 0.5);
+
+    // h0*(-k) = conjugate of the same process for -k
+    // Conjugate = (real, -imag)
+    float2 h0Conj = float2(gauss2.x, -gauss2.y) * sqrt(spectrumConj * 0.5);
+
+    _H0Texture[id.xy] = float4(h0.x, h0.y, h0Conj.x, h0Conj.y);
+}

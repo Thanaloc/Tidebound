@@ -1,0 +1,110 @@
+// Inverse FFT via Cooley-Tukey radix-2 DIT (decimation in time).
+//
+// Four kernels:
+//   BitReversalHorizontal  — reorder rows into bit-reversed order
+//   BitReversalVertical    — reorder columns into bit-reversed order
+//   ButterflyHorizontal    — one butterfly pass on rows
+//   ButterflyVertical      — one butterfly pass on columns
+
+#pragma kernel BitReversalHorizontal
+#pragma kernel BitReversalVertical
+#pragma kernel ButterflyHorizontal
+#pragma kernel ButterflyVertical
+
+// Both declared as RW because all textures use enableRandomWrite (UAV).
+// _Input is only read, but binding requires RW for UAV textures.
+RWTexture2D<float2> _Input;
+RWTexture2D<float2> _Output;
+
+uint _Resolution;
+uint _LogN;
+uint _Pass;
+bool _LastPass;
+
+static const float PI = 3.14159265;
+
+float2 complexMul(float2 a, float2 b)
+{
+    return float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+uint reverseBits(uint val, uint numBits)
+{
+    uint result = 0;
+    for (uint i = 0; i < numBits; i++)
+    {
+        result = (result << 1) | (val & 1);
+        val >>= 1;
+    }
+    return result;
+}
+
+[numthreads(8, 8, 1)]
+void BitReversalHorizontal(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _Resolution || id.y >= _Resolution) return;
+    uint revX = reverseBits(id.x, _LogN);
+    _Output[id.xy] = _Input[uint2(revX, id.y)];
+}
+
+[numthreads(8, 8, 1)]
+void BitReversalVertical(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _Resolution || id.y >= _Resolution) return;
+    uint revY = reverseBits(id.y, _LogN);
+    _Output[id.xy] = _Input[uint2(id.x, revY)];
+}
+
+[numthreads(8, 8, 1)]
+void ButterflyHorizontal(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _Resolution || id.y >= _Resolution) return;
+
+    uint halfBlock = 1u << _Pass;
+    uint blockSize = halfBlock << 1;
+
+    uint posInBlock = id.x % blockSize;
+    bool isTop = posInBlock < halfBlock;
+    uint k = isTop ? posInBlock : (posInBlock - halfBlock);
+
+    uint topX = isTop ? id.x : (id.x - halfBlock);
+    uint bottomX = topX + halfBlock;
+
+    float2 topVal = _Input[uint2(topX, id.y)];
+    float2 bottomVal = _Input[uint2(bottomX, id.y)];
+
+    float angle = 2.0 * PI * float(k) / float(blockSize);
+    float2 twiddle = float2(cos(angle), sin(angle));
+    float2 twiddled = complexMul(twiddle, bottomVal);
+
+    float2 result = isTop ? (topVal + twiddled) : (topVal - twiddled);
+    
+    _Output[id.xy] = result;
+}
+
+[numthreads(8, 8, 1)]
+void ButterflyVertical(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _Resolution || id.y >= _Resolution) return;
+
+    uint halfBlock = 1u << _Pass;
+    uint blockSize = halfBlock << 1;
+
+    uint posInBlock = id.y % blockSize;
+    bool isTop = posInBlock < halfBlock;
+    uint k = isTop ? posInBlock : (posInBlock - halfBlock);
+
+    uint topY = isTop ? id.y : (id.y - halfBlock);
+    uint bottomY = topY + halfBlock;
+
+    float2 topVal = _Input[uint2(id.x, topY)];
+    float2 bottomVal = _Input[uint2(id.x, bottomY)];
+
+    float angle = 2.0 * PI * float(k) / float(blockSize);
+    float2 twiddle = float2(cos(angle), sin(angle));
+    float2 twiddled = complexMul(twiddle, bottomVal);
+
+    float2 result = isTop ? (topVal + twiddled) : (topVal - twiddled);
+    
+    _Output[id.xy] = result;
+}

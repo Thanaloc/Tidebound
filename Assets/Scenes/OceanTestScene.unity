@@ -416,8 +416,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f13e2cbe8e1fe0479b274fb7027dfd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PirateSeas.Ocean.OceanManager
+  _mode: 1
   _settings: {fileID: 11400000, guid: c46411aeb8b7b1046967efb9a51e7f8e, type: 2}
   _oceanMaterial: {fileID: 2100000, guid: e96343271c8dbfc43b5cc29940546dbc, type: 2}
+  _spectrumShader: {fileID: 7200000, guid: 916ddc49ac79dec4d88f8996d7758146, type: 3}
+  _timeSpectrumShader: {fileID: 7200000, guid: 07fb853493dd15a4d9826934c4592e48, type: 3}
+  _fftButterflyShader: {fileID: 7200000, guid: 7a15781b857de1f4d9466d6fd210f887, type: 3}
 --- !u!114 &1888963883
 MonoBehaviour:
   m_ObjectHideFlags: 0
