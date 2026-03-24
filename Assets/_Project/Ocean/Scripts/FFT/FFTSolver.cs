@@ -5,10 +5,8 @@ namespace PirateSeas.Ocean.FFT
     /// <summary>
     /// Runs the Inverse FFT on a complex spectrum texture to produce spatial-domain output.
     /// 
-    /// Pure math tool — knows nothing about oceans.
-    /// 
-    /// Each call to Execute() returns a persistent texture with the result, so the internal
-    /// ping-pong buffers can be safely reused for the next Execute() call.
+    /// Normalization: 1/N after horizontal passes + 1/N after vertical passes = 1/N² total.
+    /// Output values are in physically meaningful units (meters of displacement).
     /// </summary>
     public class FFTSolver
     {
@@ -62,6 +60,7 @@ namespace PirateSeas.Ocean.FFT
             for (int pass = 0; pass < logN; pass++)
             {
                 _shader.SetInt("_Pass", pass);
+                _shader.SetBool("_LastPass", false);
 
                 _shader.SetTexture(_kernelButterflyH, "_Input", current);
                 _shader.SetTexture(_kernelButterflyH, "_Output", next);
@@ -81,6 +80,7 @@ namespace PirateSeas.Ocean.FFT
             for (int pass = 0; pass < logN; pass++)
             {
                 _shader.SetInt("_Pass", pass);
+                _shader.SetBool("_LastPass", pass == logN - 1);
 
                 _shader.SetTexture(_kernelButterflyV, "_Input", current);
                 _shader.SetTexture(_kernelButterflyV, "_Output", next);

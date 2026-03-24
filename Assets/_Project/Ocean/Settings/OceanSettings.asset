@@ -30,6 +30,12 @@ MonoBehaviour:
     speed: 3
     direction: {x: -0.3, y: 0.8}
     steepness: 0.5
+  fftResolution: 256
+  spectrumScale: 0.0005
+  windSpeed: 15
+  windDirection: {x: 1, y: 0.5}
+  windDependency: 2
+  smallWaveCutoff: 0.1
   shallowColor: {r: 0.1, g: 0.6, b: 0.7, a: 0.9}
   deepColor: {r: 0.02, g: 0.1, b: 0.2, a: 1}
   fresnelPower: 3

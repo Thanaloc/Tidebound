@@ -1,12 +1,7 @@
-// Inverse FFT via Cooley-Tukey radix-2 DIT (decimation in time).
+// Inverse FFT via Cooley-Tukey radix-2 DIT.
 //
-// Four kernels:
-//   BitReversalHorizontal  — reorder rows into bit-reversed order
-//   BitReversalVertical    — reorder columns into bit-reversed order
-//   ButterflyHorizontal    — one butterfly pass on rows
-//   ButterflyVertical      — one butterfly pass on columns
-//
-// No normalization here — amplitude is controlled by Displacement Strength in the shader.
+// Normalization: 1/N on last horizontal pass + 1/N on last vertical pass = 1/N² total.
+// This is mathematically correct for a 2D IFFT.
 
 #pragma kernel BitReversalHorizontal
 #pragma kernel BitReversalVertical
@@ -19,6 +14,7 @@ RWTexture2D<float2> _Output;
 uint _Resolution;
 uint _LogN;
 uint _Pass;
+bool _LastPass;
 
 static const float PI = 3.14159265;
 
@@ -104,6 +100,9 @@ void ButterflyVertical(uint3 id : SV_DispatchThreadID)
     float2 twiddled = complexMul(twiddle, bottomVal);
 
     float2 result = isTop ? (topVal + twiddled) : (topVal - twiddled);
+
+    if (_LastPass)
+        result /= float(_Resolution);
 
     _Output[id.xy] = result;
 }

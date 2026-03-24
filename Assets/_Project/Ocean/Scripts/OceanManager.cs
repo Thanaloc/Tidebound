@@ -6,6 +6,9 @@ namespace PirateSeas.Ocean
     /// <summary>
     /// Single entry point for the ocean system.
     /// Supports two modes: Gerstner (CPU, simple) and FFT (GPU, realistic).
+    /// 
+    /// Hot-reload: click "Regenerate" in the inspector or modify settings 
+    /// in the OceanSettings SO and call RegenerateSpectrum() to see changes live.
     /// </summary>
     [RequireComponent(typeof(OceanMeshGenerator))]
     [RequireComponent(typeof(GerstnerWaves))]
@@ -27,6 +30,10 @@ namespace PirateSeas.Ocean
         [SerializeField] private ComputeShader _timeSpectrumShader;
         [SerializeField] private ComputeShader _fftButterflyShader;
 
+        [Header("Debug")]
+        [Tooltip("Click this in play mode to regenerate the spectrum with current settings.")]
+        [SerializeField] private bool _regenerate;
+
         private OceanMeshGenerator _meshGen;
         private GerstnerWaves _gerstner;
         private OceanFFT _fft;
@@ -43,7 +50,6 @@ namespace PirateSeas.Ocean
             _meshGen = GetComponent<OceanMeshGenerator>();
             _gerstner = GetComponent<GerstnerWaves>();
 
-            // Always generate the mesh — both modes need it
             _meshGen.GenerateMesh(_settings.meshResolution, _settings.meshSize);
 
             if (_oceanMaterial != null)
@@ -86,7 +92,6 @@ namespace PirateSeas.Ocean
             {
                 _fft.Update(_settings, Time.time);
 
-                // Pass displacement textures to the shader for GPU-side vertex displacement
                 if (_oceanMaterial != null && _fft.HeightMap != null)
                 {
                     _oceanMaterial.SetTexture("_HeightMap", _fft.HeightMap);
@@ -100,6 +105,18 @@ namespace PirateSeas.Ocean
         private void OnDestroy()
         {
             _fft?.Dispose();
+        }
+
+        /// <summary>
+        /// Regenerates the spectrum with current settings. Can be called at any time.
+        /// </summary>
+        public void RegenerateSpectrum()
+        {
+            if (_fft != null)
+            {
+                _fft.Initialize(_settings);
+                Debug.Log("[OceanManager] Spectrum regenerated with current settings.");
+            }
         }
 
         private void PushMaterialProperties()
@@ -119,7 +136,6 @@ namespace PirateSeas.Ocean
             if (_mode == OceanMode.Gerstner)
                 return _gerstner.GetDisplacementAt(x, z, Time.time);
 
-            // TODO (Phase 2): GPU readback for FFT mode
             return Vector3.zero;
         }
 
@@ -131,13 +147,18 @@ namespace PirateSeas.Ocean
 #if UNITY_EDITOR
         private void OnValidate()
         {
+            // Hot-reload: when _regenerate is toggled in the inspector, regenerate the spectrum
+            if (_regenerate)
+            {
+                _regenerate = false;
+                if (Application.isPlaying)
+                    RegenerateSpectrum();
+            }
+
             if (!Application.isPlaying || _settings == null) return;
 
             if (_mode == OceanMode.Gerstner && _gerstner != null)
                 _gerstner.Initialize(_meshGen, _settings.waves);
-
-            if (_mode == OceanMode.FFT && _fft != null)
-                _fft.Initialize(_settings);
 
             PushMaterialProperties();
         }
