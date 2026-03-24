@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace PirateSeas.Ocean.FFT
 {
@@ -25,7 +24,7 @@ namespace PirateSeas.Ocean.FFT
         {
             _spectrum = new SpectrumGenerator(spectrumShader);
             _timeEvolution = new TimeEvolution(timeShader);
-            _fftSolver = new FFTSolver(fftShader);
+            _fftSolver = new FFTSolver(fftShader, 3); // 3 output textures
         }
 
         public void Initialize(OceanSettings settings)
@@ -37,9 +36,13 @@ namespace PirateSeas.Ocean.FFT
         {
             int size = settings.fftResolution;
 
+            // Step 1: Animate all 3 spectra
             _timeEvolution.Evolve(_spectrum.H0Texture, settings, time);
 
+            // Step 2: IFFT each channel — each call gets its own output texture
             _heightMap = _fftSolver.Execute(_timeEvolution.HeightSpectrum, size);
+            _displaceXMap = _fftSolver.Execute(_timeEvolution.DisplaceXSpectrum, size);
+            _displaceZMap = _fftSolver.Execute(_timeEvolution.DisplaceZSpectrum, size);
         }
 
         public void Dispose()

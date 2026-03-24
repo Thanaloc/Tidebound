@@ -7,12 +7,8 @@ namespace PirateSeas.Ocean.FFT
     /// 
     /// Pure math tool — knows nothing about oceans.
     /// 
-    /// Pipeline per axis:
-    ///   1. Bit-reversal permutation (reorder input)
-    ///   2. log2(N) butterfly passes (combine pairs)
-    ///   3. Result: spatial-domain displacement values
-    /// 
-    /// Uses ping-pong: two textures, alternate read/write each pass.
+    /// Each call to Execute() returns a persistent texture with the result, so the internal
+    /// ping-pong buffers can be safely reused for the next Execute() call.
     /// </summary>
     public class FFTSolver
     {
@@ -26,19 +22,21 @@ namespace PirateSeas.Ocean.FFT
         private RenderTexture _bufferA;
         private RenderTexture _bufferB;
 
-        public FFTSolver(ComputeShader shader)
+        private RenderTexture[] _outputs;
+        private int _outputIndex;
+
+        public FFTSolver(ComputeShader shader, int outputCount = 3)
         {
             _shader = shader;
             _kernelBitRevH = _shader.FindKernel("BitReversalHorizontal");
             _kernelBitRevV = _shader.FindKernel("BitReversalVertical");
             _kernelButterflyH = _shader.FindKernel("ButterflyHorizontal");
             _kernelButterflyV = _shader.FindKernel("ButterflyVertical");
+
+            _outputs = new RenderTexture[outputCount];
+            _outputIndex = 0;
         }
 
-        /// <summary>
-        /// Runs the full 2D IFFT. Returns the texture containing the spatial result.
-        /// The input texture is not modified.
-        /// </summary>
         public RenderTexture Execute(RenderTexture spectrumInput, int size)
         {
             EnsureBuffers(size);
@@ -49,8 +47,6 @@ namespace PirateSeas.Ocean.FFT
             _shader.SetInt("_Resolution", size);
             _shader.SetInt("_LogN", logN);
 
-            // We track which buffer holds the "current" data.
-            // After each dispatch, we swap.
             RenderTexture current;
             RenderTexture next;
 
@@ -60,24 +56,19 @@ namespace PirateSeas.Ocean.FFT
             _shader.SetTexture(_kernelBitRevH, "_Output", _bufferA);
             _shader.Dispatch(_kernelBitRevH, groups, groups, 1);
 
-            // After bit-reversal, current data is in _bufferA
             current = _bufferA;
             next = _bufferB;
 
             for (int pass = 0; pass < logN; pass++)
             {
                 _shader.SetInt("_Pass", pass);
-                _shader.SetBool("_LastPass", pass == logN - 1);
 
                 _shader.SetTexture(_kernelButterflyH, "_Input", current);
                 _shader.SetTexture(_kernelButterflyH, "_Output", next);
                 _shader.Dispatch(_kernelButterflyH, groups, groups, 1);
 
-                // Swap
                 (current, next) = (next, current);
             }
-
-            // After horizontal passes, result is in "current"
 
             // ── Vertical: bit-reverse columns, then butterfly ──
 
@@ -85,13 +76,11 @@ namespace PirateSeas.Ocean.FFT
             _shader.SetTexture(_kernelBitRevV, "_Output", next);
             _shader.Dispatch(_kernelBitRevV, groups, groups, 1);
 
-            // Swap after bit-reversal
             (current, next) = (next, current);
 
             for (int pass = 0; pass < logN; pass++)
             {
                 _shader.SetInt("_Pass", pass);
-                _shader.SetBool("_LastPass", pass == logN - 1);
 
                 _shader.SetTexture(_kernelButterflyV, "_Input", current);
                 _shader.SetTexture(_kernelButterflyV, "_Output", next);
@@ -100,8 +89,14 @@ namespace PirateSeas.Ocean.FFT
                 (current, next) = (next, current);
             }
 
-            // "current" now holds the final spatial-domain result
-            return current;
+            // Copy to persistent output
+            EnsureOutput(size);
+            Graphics.CopyTexture(current, _outputs[_outputIndex]);
+            RenderTexture result = _outputs[_outputIndex];
+
+            _outputIndex = (_outputIndex + 1) % _outputs.Length;
+
+            return result;
         }
 
         private void EnsureBuffers(int size)
@@ -111,15 +106,24 @@ namespace PirateSeas.Ocean.FFT
             if (_bufferA != null) _bufferA.Release();
             if (_bufferB != null) _bufferB.Release();
 
-            _bufferA = CreateBuffer(size);
-            _bufferB = CreateBuffer(size);
+            _bufferA = CreateBuffer(size, true);
+            _bufferB = CreateBuffer(size, true);
         }
 
-        private RenderTexture CreateBuffer(int size)
+        private void EnsureOutput(int size)
+        {
+            if (_outputs[_outputIndex] != null && _outputs[_outputIndex].width == size) return;
+
+            if (_outputs[_outputIndex] != null) _outputs[_outputIndex].Release();
+
+            _outputs[_outputIndex] = CreateBuffer(size, false);
+        }
+
+        private RenderTexture CreateBuffer(int size, bool randomWrite)
         {
             var tex = new RenderTexture(size, size, 0, RenderTextureFormat.RGFloat)
             {
-                enableRandomWrite = true,
+                enableRandomWrite = randomWrite,
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Repeat
             };
@@ -131,6 +135,11 @@ namespace PirateSeas.Ocean.FFT
         {
             if (_bufferA != null) _bufferA.Release();
             if (_bufferB != null) _bufferB.Release();
+
+            for (int i = 0; i < _outputs.Length; i++)
+            {
+                if (_outputs[i] != null) _outputs[i].Release();
+            }
         }
     }
 }
