@@ -1,7 +1,5 @@
 // Inverse FFT via Cooley-Tukey radix-2 DIT.
-//
-// Normalization: 1/N on last horizontal pass + 1/N on last vertical pass = 1/N² total.
-// This is mathematically correct for a 2D IFFT.
+// Full 1/N² normalization (1/N per axis).
 
 #pragma kernel BitReversalHorizontal
 #pragma kernel BitReversalVertical
@@ -73,6 +71,9 @@ void ButterflyHorizontal(uint3 id : SV_DispatchThreadID)
     float2 twiddled = complexMul(twiddle, bottomVal);
 
     float2 result = isTop ? (topVal + twiddled) : (topVal - twiddled);
+
+    if (_LastPass)
+        result /= float(_Resolution);
 
     _Output[id.xy] = result;
 }

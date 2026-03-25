@@ -3,10 +3,8 @@ using UnityEngine;
 namespace PirateSeas.Ocean.FFT
 {
     /// <summary>
-    /// Runs the Inverse FFT on a complex spectrum texture to produce spatial-domain output.
-    /// 
-    /// Normalization: 1/N after horizontal passes + 1/N after vertical passes = 1/N² total.
-    /// Output values are in physically meaningful units (meters of displacement).
+    /// Runs the Inverse FFT on a complex spectrum texture.
+    /// Full 1/N² normalization (1/N per axis).
     /// </summary>
     public class FFTSolver
     {
@@ -48,7 +46,7 @@ namespace PirateSeas.Ocean.FFT
             RenderTexture current;
             RenderTexture next;
 
-            // ── Horizontal: bit-reverse rows, then butterfly ──
+            // ── Horizontal ──
 
             _shader.SetTexture(_kernelBitRevH, "_Input", spectrumInput);
             _shader.SetTexture(_kernelBitRevH, "_Output", _bufferA);
@@ -69,7 +67,7 @@ namespace PirateSeas.Ocean.FFT
                 (current, next) = (next, current);
             }
 
-            // ── Vertical: bit-reverse columns, then butterfly ──
+            // ── Vertical ──
 
             _shader.SetTexture(_kernelBitRevV, "_Input", current);
             _shader.SetTexture(_kernelBitRevV, "_Output", next);
@@ -80,7 +78,7 @@ namespace PirateSeas.Ocean.FFT
             for (int pass = 0; pass < logN; pass++)
             {
                 _shader.SetInt("_Pass", pass);
-                _shader.SetBool("_LastPass", pass == logN - 1);
+                _shader.SetBool("_LastPass", pass == logN - 1); // 1/N on last vertical
 
                 _shader.SetTexture(_kernelButterflyV, "_Input", current);
                 _shader.SetTexture(_kernelButterflyV, "_Output", next);
@@ -89,11 +87,9 @@ namespace PirateSeas.Ocean.FFT
                 (current, next) = (next, current);
             }
 
-            // Copy to persistent output
             EnsureOutput(size);
             Graphics.CopyTexture(current, _outputs[_outputIndex]);
             RenderTexture result = _outputs[_outputIndex];
-
             _outputIndex = (_outputIndex + 1) % _outputs.Length;
 
             return result;
@@ -102,10 +98,8 @@ namespace PirateSeas.Ocean.FFT
         private void EnsureBuffers(int size)
         {
             if (_bufferA != null && _bufferA.width == size) return;
-
             if (_bufferA != null) _bufferA.Release();
             if (_bufferB != null) _bufferB.Release();
-
             _bufferA = CreateBuffer(size, true);
             _bufferB = CreateBuffer(size, true);
         }
@@ -113,9 +107,7 @@ namespace PirateSeas.Ocean.FFT
         private void EnsureOutput(int size)
         {
             if (_outputs[_outputIndex] != null && _outputs[_outputIndex].width == size) return;
-
             if (_outputs[_outputIndex] != null) _outputs[_outputIndex].Release();
-
             _outputs[_outputIndex] = CreateBuffer(size, false);
         }
 
@@ -135,11 +127,8 @@ namespace PirateSeas.Ocean.FFT
         {
             if (_bufferA != null) _bufferA.Release();
             if (_bufferB != null) _bufferB.Release();
-
             for (int i = 0; i < _outputs.Length; i++)
-            {
                 if (_outputs[i] != null) _outputs[i].Release();
-            }
         }
     }
 }

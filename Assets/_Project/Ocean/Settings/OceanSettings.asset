@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abc31b3ae947d18418961cec6dc670f6, type: 3}
   m_Name: OceanSettings
   m_EditorClassIdentifier: Assembly-CSharp::PirateSeas.Ocean.OceanSettings
-  meshResolution: 128
-  meshSize: 200
+  meshResolution: 512
+  meshSize: 500
   waves:
   - amplitude: 1
     wavelength: 40
@@ -31,11 +31,8 @@ MonoBehaviour:
     direction: {x: -0.3, y: 0.8}
     steepness: 0.5
   fftResolution: 256
-  spectrumScale: 0.0005
-  windSpeed: 15
-  windDirection: {x: 1, y: 0.5}
-  windDependency: 2
-  smallWaveCutoff: 0.1
-  shallowColor: {r: 0.1, g: 0.6, b: 0.7, a: 0.9}
-  deepColor: {r: 0.02, g: 0.1, b: 0.2, a: 1}
-  fresnelPower: 3
+  spectrumScale: 0.001
+  windSpeed: 30
+  windDirection: {x: 1, y: 0}
+  windDependency: 4
+  smallWaveCutoff: 0.5

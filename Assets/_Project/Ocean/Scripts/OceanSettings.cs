@@ -3,7 +3,7 @@ using UnityEngine;
 namespace PirateSeas.Ocean
 {
     /// <summary>
-    /// All ocean parameters live here. Tweak in the inspector, swap presets easily.
+    /// Ocean SIMULATION parameters only. Visual params live on the Material.
     /// Create via: Right-click > PirateSeas > Ocean Settings
     /// </summary>
     [CreateAssetMenu(fileName = "OceanSettings", menuName = "PirateSeas/Ocean Settings")]
@@ -14,8 +14,8 @@ namespace PirateSeas.Ocean
         [Range(32, 512)]
         public int meshResolution = 256;
 
-        [Tooltip("Total size of the water plane in world units.")]
-        public float meshSize = 200f;
+        [Tooltip("Total size of the water plane in world units. 500 = good vertex density.")]
+        public float meshSize = 500f;
 
         [Header("Gerstner Waves (fallback)")]
         public GerstnerWaveConfig[] waves = new GerstnerWaveConfig[]
@@ -46,54 +46,36 @@ namespace PirateSeas.Ocean
             }
         };
 
-        [Header("FFT Ocean")]
-        [Tooltip("Texture resolution for FFT. Must be a power of 2. 256 is the sweet spot.")]
+        [Header("FFT Spectrum")]
         public int fftResolution = 256;
 
-        [Tooltip("How intense the waves are overall.")]
-        [Range(0.0001f, 0.01f)]
+        [Tooltip("Overall wave energy.")]
+        [Range(0.00001f, 0.01f)]
         public float spectrumScale = 0.0005f;
 
-        [Tooltip("Wind speed in m/s. Higher = bigger waves.")]
+        [Tooltip("Wind speed in m/s.")]
         [Range(1f, 40f)]
-        public float windSpeed = 15f;
+        public float windSpeed = 20f;
 
         [Tooltip("Wind direction (gets normalized).")]
-        public Vector2 windDirection = new Vector2(1f, 0.5f);
+        public Vector2 windDirection = new Vector2(1f, 0f);
 
-        [Tooltip("How much waves align with wind. 0 = all directions, 6+ = very directional.")]
+        [Tooltip("Directional spread. 0 = all directions, 6+ = very directional.")]
         [Range(0f, 10f)]
-        public float windDependency = 2f;
+        public float windDependency = 4f;
 
-        [Tooltip("Suppresses tiny waves below this size (meters). Removes high-freq noise.")]
+        [Tooltip("Suppresses wavelengths below this (meters).")]
         [Range(0f, 5f)]
-        public float smallWaveCutoff = 0.1f;
-
-        [Header("Visual")]
-        public Color shallowColor = new Color(0.1f, 0.6f, 0.7f, 0.9f);
-        public Color deepColor = new Color(0.02f, 0.1f, 0.2f, 1f);
-
-        [Tooltip("How reflective the water gets at grazing angles.")]
-        [Range(0f, 5f)]
-        public float fresnelPower = 3f;
+        public float smallWaveCutoff = 0.5f;
     }
 
     [System.Serializable]
     public struct GerstnerWaveConfig
     {
-        [Tooltip("Peak height in meters.")]
         public float amplitude;
-
-        [Tooltip("Distance between two crests in meters.")]
         public float wavelength;
-
-        [Tooltip("How fast the wave travels (m/s).")]
         public float speed;
-
-        [Tooltip("Propagation direction (gets normalized at runtime).")]
         public Vector2 direction;
-
-        [Tooltip("Crest sharpness. 0 = smooth sine, 1 = sharp peak. Above 1 = artifacts.")]
         [Range(0f, 1f)]
         public float steepness;
     }
