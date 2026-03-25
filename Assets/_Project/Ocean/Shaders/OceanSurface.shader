@@ -1,35 +1,36 @@
-// PBR ocean surface shader for URP.
-// Height-only displacement (no choppy = no triangle folding).
-// Smooth normals from heightmap finite differences.
-// Fresnel, sky reflection, sun specular, subsurface scattering.
 Shader "PirateSeas/OceanSurface"
 {
     Properties
     {
         [Header(Water Color)]
-        _WaterColorNear ("Water color (near)", Color) = (0.04, 0.16, 0.2, 1)
-        _WaterColorFar ("Water color (horizon)", Color) = (0.02, 0.07, 0.12, 1)
-        _HorizonDistance ("Horizon blend distance", Range(10, 500)) = 150
+        _WaterColorNear ("Near", Color) = (0.04, 0.16, 0.2, 1)
+        _WaterColorFar ("Horizon", Color) = (0.02, 0.07, 0.12, 1)
+        _HorizonDistance ("Blend distance", Range(10, 500)) = 150
 
         [Header(Reflection)]
         _FresnelPower ("Fresnel power", Range(1, 10)) = 4
         _FresnelBias ("Min reflection", Range(0, 0.15)) = 0.02
-        _ReflectionStrength ("Reflection strength", Range(0, 1)) = 0.7
+        _ReflectionStrength ("Strength", Range(0, 1)) = 0.7
+        _SkyHorizonColor ("Sky horizon", Color) = (0.15, 0.25, 0.35, 1)
+        _SkyZenithColor ("Sky zenith", Color) = (0.4, 0.6, 0.8, 1)
 
         [Header(Specular)]
-        _SpecularPower ("Sun tightness", Range(64, 2048)) = 512
-        _SpecularStrength ("Sun strength", Range(0, 5)) = 2.0
+        _SpecularPower ("Tightness", Range(64, 2048)) = 512
+        _SpecularStrength ("Strength", Range(0, 5)) = 2.0
 
         [Header(Subsurface Scattering)]
-        _SSSColor ("SSS tint", Color) = (0.05, 0.3, 0.2, 1)
-        _SSSStrength ("SSS strength", Range(0, 3)) = 1.0
-        _SSSPower ("SSS falloff", Range(1, 8)) = 3
+        _SSSColor ("Tint", Color) = (0.05, 0.3, 0.2, 1)
+        _SSSStrength ("Strength", Range(0, 3)) = 1.0
+        _SSSPower ("Falloff", Range(1, 8)) = 3
 
-        [Header(FFT Displacement)]
+        [Header(Displacement)]
         [HideInInspector] _HeightMap ("", 2D) = "black" {}
+        [HideInInspector] _DisplaceXMap ("", 2D) = "black" {}
+        [HideInInspector] _DisplaceZMap ("", 2D) = "black" {}
         [HideInInspector] _MeshSize ("", Float) = 500
         _DisplacementStrength ("Wave height", Range(0, 30)) = 8
-        _NormalStrength ("Normal strength", Range(0.1, 5)) = 1.5
+        _ChoppyStrength ("Choppy", Range(0, 2)) = 0.6
+        _NormalStrength ("Normal detail", Range(0.1, 5)) = 1.5
     }
 
     SubShader
@@ -64,6 +65,8 @@ Shader "PirateSeas/OceanSurface"
                 half _FresnelPower;
                 half _FresnelBias;
                 half _ReflectionStrength;
+                half4 _SkyHorizonColor;
+                half4 _SkyZenithColor;
 
                 half _SpecularPower;
                 half _SpecularStrength;
@@ -74,10 +77,13 @@ Shader "PirateSeas/OceanSurface"
 
                 float _MeshSize;
                 float _DisplacementStrength;
+                float _ChoppyStrength;
                 float _NormalStrength;
             CBUFFER_END
 
-            TEXTURE2D(_HeightMap); SAMPLER(sampler_HeightMap);
+            TEXTURE2D(_HeightMap);    SAMPLER(sampler_HeightMap);
+            TEXTURE2D(_DisplaceXMap); SAMPLER(sampler_DisplaceXMap);
+            TEXTURE2D(_DisplaceZMap); SAMPLER(sampler_DisplaceZMap);
 
             struct Attributes
             {
@@ -98,16 +104,21 @@ Shader "PirateSeas/OceanSurface"
             Varyings vert(Attributes input)
             {
                 Varyings output;
-
                 float2 uv = input.uv;
 
-                // Height-only displacement — no horizontal, no folding
                 float height = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv, 0).x;
+                float displaceX = SAMPLE_TEXTURE2D_LOD(_DisplaceXMap, sampler_DisplaceXMap, uv, 0).x;
+                float displaceZ = SAMPLE_TEXTURE2D_LOD(_DisplaceZMap, sampler_DisplaceZMap, uv, 0).x;
 
+                // Choppy displacement with lambda scaling.
+                // _ChoppyStrength acts as lambda: 0 = no horizontal movement (round waves),
+                // 0.5-0.8 = sharp crests without folding, >1 = risk of folding.
+                // Keep it under 1.0 for safety.
                 float3 displaced = input.positionOS.xyz;
                 displaced.y += height * _DisplacementStrength;
+                displaced.x += displaceX * _ChoppyStrength;
+                displaced.z += displaceZ * _ChoppyStrength;
 
-                // Smooth normals from heightmap finite differences
                 float texelSize = 1.0 / 512.0;
                 float hL = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv + float2(-texelSize, 0), 0).x;
                 float hR = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv + float2(texelSize, 0), 0).x;
@@ -120,7 +131,6 @@ Shader "PirateSeas/OceanSurface"
                     (hD - hU) * _DisplacementStrength * _NormalStrength
                 ));
 
-                // Use FFT normal if available, fallback to mesh normal
                 float3 normalOS = (abs(height) > 0.0001) ? computedNormal : input.normalOS;
 
                 VertexPositionInputs posInputs = GetVertexPositionInputs(displaced);
@@ -144,41 +154,35 @@ Shader "PirateSeas/OceanSurface"
                 float3 lightDir = normalize(mainLight.direction);
                 float3 lightColor = mainLight.color;
 
-                // ── Water base color ──
+                // Water color: distance-based near/far blend
                 float dist = distance(input.positionWS, _WorldSpaceCameraPos);
                 float horizonFactor = saturate(dist / _HorizonDistance);
                 half3 waterColor = lerp(_WaterColorNear.rgb, _WaterColorFar.rgb, horizonFactor);
-
-                // Soft wrap lighting
                 float NdotL = saturate(dot(normal, lightDir) * 0.5 + 0.5);
                 waterColor *= lerp(0.6, 1.0, NdotL);
 
-                // ── Fresnel (Schlick) ──
+                // Fresnel
                 float NdotV = saturate(dot(normal, viewDir));
                 float fresnel = _FresnelBias + (1.0 - _FresnelBias) * pow(1.0 - NdotV, _FresnelPower);
 
-                // ── Sky reflection ──
+                // Procedural sky reflection
                 float3 reflectDir = reflect(-viewDir, normal);
-                half3 skyColor = lerp(
-                    half3(0.15, 0.25, 0.35),   // horizon color
-                    half3(0.4, 0.6, 0.8),      // zenith color
-                    saturate(reflectDir.y)
-                );
+                half3 skyColor = lerp(_SkyHorizonColor.rgb, _SkyZenithColor.rgb, saturate(reflectDir.y));
                 half3 reflection = skyColor * _ReflectionStrength;
 
-                // ── Specular (sun glint) ──
+                // Specular
                 float3 halfVec = normalize(lightDir + viewDir);
                 float NdotH = saturate(dot(normal, halfVec));
                 half3 specular = lightColor * pow(NdotH, _SpecularPower) * _SpecularStrength;
 
-                // ── Subsurface scattering ──
+                // SSS
                 float3 sssDir = lightDir + normal * 0.5;
                 float sssDot = saturate(dot(viewDir, -sssDir));
                 float sssAmount = pow(sssDot, _SSSPower) * _SSSStrength;
                 float heightBoost = saturate(input.waveHeight * _DisplacementStrength * 0.3);
                 half3 sss = _SSSColor.rgb * sssAmount * heightBoost * lightColor;
 
-                // ── Final composite ──
+                // Composite
                 half3 finalColor = lerp(waterColor, reflection, fresnel);
                 finalColor += specular;
                 finalColor += sss;
