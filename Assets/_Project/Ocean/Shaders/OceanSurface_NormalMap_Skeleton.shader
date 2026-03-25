@@ -29,7 +29,7 @@ Shader "PirateSeas/OceanSurface"
         _DetailTiling2 ("Layer 2 Tiling", Float) = 4
         _DetailSpeed1 ("Layer 1 Speed", Vector) = (0.03, 0.02, 0, 0)
         _DetailSpeed2 ("Layer 2 Speed", Vector) = (-0.02, 0.03, 0, 0)
-        _DetailNormalStrength ("Detail Strength", Range(0, 10)) = 0.3
+        _DetailNormalStrength ("Detail Strength", Range(0, 1)) = 0.3
 
         [Header(Displacement)]
         [HideInInspector] _HeightMap ("", 2D) = "black" {}
@@ -172,39 +172,31 @@ Shader "PirateSeas/OceanSurface"
                 float3 normal = normalize(input.normalWS);
                 float3 viewDir = normalize(input.viewDirWS);
 
-                //  TODO : Perturber la normale FFT avec du microd�tail
+                // ─── TODO : Perturber la normale FFT avec du micro-détail ─
                 //
                 // Objectif : la variable `normal` ci-dessus contient la
-                // normale FFT (grandes vagues). Avant qu'elle soit utilis�e
-                // par le lighting en dessous, tu dois y ajouter du d�tail
-                // haute fr�quence issu de _DetailNormalMap.
+                // normale FFT (grandes vagues). Avant qu'elle soit utilisée
+                // par le lighting en dessous, tu dois y ajouter du détail
+                // haute fréquence issu de _DetailNormalMap.
                 //
                 // Ce que tu dois produire :
-                //   - Deux samplings anim�s de la m�me normal map
-                //     (�chelles et vitesses diff�rentes, UVs world-space)
+                //   - Deux samplings animés de la même normal map
+                //     (échelles et vitesses différentes, UVs world-space)
                 //   - Un blend des deux layers
-                //   - La normale FFT perturb�e par ce d�tail
+                //   - La normale FFT perturbée par ce détail
                 //
-                // Tu as � ta disposition :
+                // Tu as à ta disposition :
                 //   - input.positionWS, _DetailTiling1/2, _DetailSpeed1/2
                 //   - _DetailNormalMap / sampler_DetailNormalMap
                 //   - UnpackNormal(), _DetailNormalStrength
-                //   - BlendNormalUDN() d�finie juste au-dessus
+                //   - BlendNormalUDN() définie juste au-dessus
                 //   - _Time.y (temps en secondes)
                 //
-                // �cris tout ton code ici, puis �crase `normal` avec
-                // le r�sultat final.
-                // 
+                // Écris tout ton code ici, puis écrase `normal` avec
+                // le résultat final.
+                // ──────────────────────────────────────────────────────────
 
-                float2 uv1 = (input.positionWS.xz * _DetailTiling1) + (_Time.y * _DetailSpeed1.xy);
-                float2 uv2 = (input.positionWS.xz * _DetailTiling2) + (_Time.y * _DetailSpeed2.xy);
 
-               float3 detailN1 = UnpackNormal(SAMPLE_TEXTURE2D(_DetailNormalMap , sampler_DetailNormalMap, uv1));
-               float3 detailN2 = UnpackNormal(SAMPLE_TEXTURE2D(_DetailNormalMap , sampler_DetailNormalMap, uv2));
-
-               float3 combine = float3(((detailN1.xy + detailN2.xy)/2) * _DetailNormalStrength, 1);
-
-               normal = BlendNormalUDN(normal ,combine);
 
                 Light mainLight = GetMainLight();
                 float3 lightDir = normalize(mainLight.direction);
