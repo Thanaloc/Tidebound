@@ -11,8 +11,6 @@ Shader "PirateSeas/OceanSurface"
         _FresnelPower ("Fresnel power", Range(1, 10)) = 4
         _FresnelBias ("Min reflection", Range(0, 0.15)) = 0.02
         _ReflectionStrength ("Strength", Range(0, 1)) = 0.7
-        _SkyHorizonColor ("Sky horizon", Color) = (0.15, 0.25, 0.35, 1)
-        _SkyZenithColor ("Sky zenith", Color) = (0.4, 0.6, 0.8, 1)
 
         [Header(Specular)]
         _SpecularPower ("Tightness", Range(64, 2048)) = 512
@@ -73,8 +71,6 @@ Shader "PirateSeas/OceanSurface"
                 half _FresnelPower;
                 half _FresnelBias;
                 half _ReflectionStrength;
-                half4 _SkyHorizonColor;
-                half4 _SkyZenithColor;
 
                 half _SpecularPower;
                 half _SpecularStrength;
@@ -169,35 +165,11 @@ Shader "PirateSeas/OceanSurface"
 
             half4 frag(Varyings input) : SV_Target
             {
-                float3 normal = normalize(input.normalWS);
-                float3 viewDir = normalize(input.viewDirWS);
+               float3 normal = normalize(input.normalWS);
+               float3 viewDir = normalize(input.viewDirWS);
 
-                //  TODO : Perturber la normale FFT avec du microdétail
-                //
-                // Objectif : la variable `normal` ci-dessus contient la
-                // normale FFT (grandes vagues). Avant qu'elle soit utilisée
-                // par le lighting en dessous, tu dois y ajouter du détail
-                // haute fréquence issu de _DetailNormalMap.
-                //
-                // Ce que tu dois produire :
-                //   - Deux samplings animés de la même normal map
-                //     (échelles et vitesses différentes, UVs world-space)
-                //   - Un blend des deux layers
-                //   - La normale FFT perturbée par ce détail
-                //
-                // Tu as à ta disposition :
-                //   - input.positionWS, _DetailTiling1/2, _DetailSpeed1/2
-                //   - _DetailNormalMap / sampler_DetailNormalMap
-                //   - UnpackNormal(), _DetailNormalStrength
-                //   - BlendNormalUDN() définie juste au-dessus
-                //   - _Time.y (temps en secondes)
-                //
-                // Écris tout ton code ici, puis écrase `normal` avec
-                // le résultat final.
-                // 
-
-                float2 uv1 = (input.positionWS.xz * _DetailTiling1) + (_Time.y * _DetailSpeed1.xy);
-                float2 uv2 = (input.positionWS.xz * _DetailTiling2) + (_Time.y * _DetailSpeed2.xy);
+               float2 uv1 = (input.positionWS.xz * _DetailTiling1) + (_Time.y * _DetailSpeed1.xy);
+               float2 uv2 = (input.positionWS.xz * _DetailTiling2) + (_Time.y * _DetailSpeed2.xy);
 
                float3 detailN1 = UnpackNormal(SAMPLE_TEXTURE2D(_DetailNormalMap , sampler_DetailNormalMap, uv1));
                float3 detailN2 = UnpackNormal(SAMPLE_TEXTURE2D(_DetailNormalMap , sampler_DetailNormalMap, uv2));
@@ -206,36 +178,35 @@ Shader "PirateSeas/OceanSurface"
 
                normal = BlendNormalUDN(normal ,combine);
 
-                Light mainLight = GetMainLight();
-                float3 lightDir = normalize(mainLight.direction);
-                float3 lightColor = mainLight.color;
+               Light mainLight = GetMainLight();
+               float3 lightDir = normalize(mainLight.direction);
+               float3 lightColor = mainLight.color;
 
-                float dist = distance(input.positionWS, _WorldSpaceCameraPos);
-                float horizonFactor = saturate(dist / _HorizonDistance);
-                half3 waterColor = lerp(_WaterColorNear.rgb, _WaterColorFar.rgb, horizonFactor);
-                float NdotL = saturate(dot(normal, lightDir) * 0.5 + 0.5);
-                waterColor *= lerp(0.6, 1.0, NdotL);
+               float dist = distance(input.positionWS, _WorldSpaceCameraPos);
+               float horizonFactor = saturate(dist / _HorizonDistance);
+               half3 waterColor = lerp(_WaterColorNear.rgb, _WaterColorFar.rgb, horizonFactor);
+               float NdotL = saturate(dot(normal, lightDir) * 0.5 + 0.5);
+               waterColor *= lerp(0.75, 1.0, NdotL);
 
-                float NdotV = saturate(dot(normal, viewDir));
-                float fresnel = _FresnelBias + (1.0 - _FresnelBias) * pow(1.0 - NdotV, _FresnelPower);
+               float NdotV = saturate(dot(normal, viewDir));
+               float fresnel = _FresnelBias + (1.0 - _FresnelBias) * pow(1.0 - NdotV, _FresnelPower);
 
-                float3 reflectDir = reflect(-viewDir, normal);
-                half3 skyColor = lerp(_SkyHorizonColor.rgb, _SkyZenithColor.rgb, saturate(reflectDir.y));
-                half3 reflection = skyColor * _ReflectionStrength;
+               float3 reflectDir = reflect(-viewDir, normal);
+               half3 reflection = GlossyEnvironmentReflection(reflectDir, 0.15, 1.0) * _ReflectionStrength;
 
-                float3 halfVec = normalize(lightDir + viewDir);
-                float NdotH = saturate(dot(normal, halfVec));
-                half3 specular = lightColor * pow(NdotH, _SpecularPower) * _SpecularStrength;
+               float3 halfVec = normalize(lightDir + viewDir);
+               float NdotH = saturate(dot(normal, halfVec));
+               half3 specular = lightColor * pow(NdotH, _SpecularPower) * _SpecularStrength;
 
-                float3 sssDir = lightDir + normal * 0.5;
-                float sssDot = saturate(dot(viewDir, -sssDir));
-                float sssAmount = pow(sssDot, _SSSPower) * _SSSStrength;
-                float heightBoost = saturate(input.waveHeight * _DisplacementStrength * 0.3);
-                half3 sss = _SSSColor.rgb * sssAmount * heightBoost * lightColor;
+               float3 sssDir = lightDir + normal * 0.5;
+               float sssDot = saturate(dot(viewDir, -sssDir));
+               float sssAmount = pow(sssDot, _SSSPower) * _SSSStrength;
+               float heightBoost = saturate(input.waveHeight * _DisplacementStrength * 0.3);
+               half3 sss = _SSSColor.rgb * sssAmount * heightBoost * lightColor;
 
-                half3 finalColor = lerp(waterColor, reflection, fresnel);
-                finalColor += specular;
-                finalColor += sss;
+               half3 finalColor = lerp(waterColor, reflection, fresnel);
+               finalColor += specular;
+               finalColor += sss;
 
                 return half4(finalColor, 1.0);
             }
