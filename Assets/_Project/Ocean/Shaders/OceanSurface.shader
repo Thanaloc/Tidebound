@@ -30,13 +30,19 @@ Shader "PirateSeas/OceanSurface"
         _DetailNormalStrength ("Detail Strength", Range(0, 10)) = 0.3
 
         [Header(Displacement)]
+        _DisplacementStrength ("Wave height", Range(0, 30)) = 8
+        _ChoppyStrength ("Choppy", Range(0, 2)) = 0.6
+        _NormalStrength ("Normal detail", Range(0.1, 5)) = 1.5
         [HideInInspector] _HeightMap ("", 2D) = "black" {}
         [HideInInspector] _DisplaceXMap ("", 2D) = "black" {}
         [HideInInspector] _DisplaceZMap ("", 2D) = "black" {}
         [HideInInspector] _MeshSize ("", Float) = 500
-        _DisplacementStrength ("Wave height", Range(0, 30)) = 8
-        _ChoppyStrength ("Choppy", Range(0, 2)) = 0.6
-        _NormalStrength ("Normal detail", Range(0.1, 5)) = 1.5
+
+        [Header(Foam)]
+        _FoamIntensity("Foam Intensity", Range(0, 20)) = 5
+        _FoamThreshold("Foam Threshold", Range(0, 2)) = 1.0
+        _FoamColor("Foam Color", Color) = (1, 1, 1, 1)
+        [HideInInspector] _JacobianMap ("", 2D) = "black" {}
     }
 
     SubShader
@@ -89,11 +95,16 @@ Shader "PirateSeas/OceanSurface"
                 float _DisplacementStrength;
                 float _ChoppyStrength;
                 float _NormalStrength;
+
+                float _FoamIntensity;
+                float _FoamThreshold;
+                half4 _FoamColor;
             CBUFFER_END
 
             TEXTURE2D(_HeightMap);    SAMPLER(sampler_HeightMap);
             TEXTURE2D(_DisplaceXMap); SAMPLER(sampler_DisplaceXMap);
             TEXTURE2D(_DisplaceZMap); SAMPLER(sampler_DisplaceZMap);
+            TEXTURE2D(_JacobianMap); SAMPLER(sampler_JacobianMap);
             TEXTURE2D(_DetailNormalMap); SAMPLER(sampler_DetailNormalMap);
 
             struct Attributes
@@ -110,12 +121,14 @@ Shader "PirateSeas/OceanSurface"
                 float3 viewDirWS     : TEXCOORD1;
                 float3 positionWS    : TEXCOORD2;
                 float  waveHeight    : TEXCOORD3;
+                float2 uv            : TEXCOORD4;
             };
 
             Varyings vert(Attributes input)
             {
                 Varyings output;
                 float2 uv = input.uv;
+                output.uv = uv;
 
                 float height = SAMPLE_TEXTURE2D_LOD(_HeightMap, sampler_HeightMap, uv, 0).x;
                 float displaceX = SAMPLE_TEXTURE2D_LOD(_DisplaceXMap, sampler_DisplaceXMap, uv, 0).x;
@@ -186,13 +199,13 @@ Shader "PirateSeas/OceanSurface"
                float horizonFactor = saturate(dist / _HorizonDistance);
                half3 waterColor = lerp(_WaterColorNear.rgb, _WaterColorFar.rgb, horizonFactor);
                float NdotL = saturate(dot(normal, lightDir) * 0.5 + 0.5);
-               waterColor *= lerp(0.75, 1.0, NdotL);
+               waterColor *= lerp(0.90, 1.0, NdotL);
 
                float NdotV = saturate(dot(normal, viewDir));
                float fresnel = _FresnelBias + (1.0 - _FresnelBias) * pow(1.0 - NdotV, _FresnelPower);
 
                float3 reflectDir = reflect(-viewDir, normal);
-               half3 reflection = GlossyEnvironmentReflection(reflectDir, 0.15, 1.0) * _ReflectionStrength;
+               half3 reflection = GlossyEnvironmentReflection(reflectDir, 0.25, 1.0) * _ReflectionStrength;
 
                float3 halfVec = normalize(lightDir + viewDir);
                float NdotH = saturate(dot(normal, halfVec));
@@ -208,7 +221,12 @@ Shader "PirateSeas/OceanSurface"
                finalColor += specular;
                finalColor += sss;
 
-                return half4(finalColor, 1.0);
+               float jacobian = SAMPLE_TEXTURE2D_LOD(_JacobianMap, sampler_JacobianMap, input.uv, 0).x;
+               float foamFactor = saturate(_FoamThreshold - jacobian) * _FoamIntensity;
+                
+               finalColor = lerp(finalColor, _FoamColor, foamFactor);
+
+               return half4(finalColor, 1.0); 
             }
             ENDHLSL
         }

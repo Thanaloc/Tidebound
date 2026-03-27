@@ -1,0 +1,52 @@
+// Computes the Jacobian determinant of the horizontal displacement field.
+// Runs AFTER the 3 IFFTs, reads DisplaceX and DisplaceZ, writes a scalar Jacobian map.
+//
+// J = (1 + λ·∂Dx/∂x) · (1 + λ·∂Dz/∂z) - (λ·∂Dx/∂z) · (λ·∂Dz/∂x)
+//
+// Where the partial derivatives are computed via finite differences
+// on the displacement textures (same technique as normal computation).
+
+#pragma kernel ComputeJacobian
+
+Texture2D<float2> _DisplaceXMap;
+Texture2D<float2> _DisplaceZMap;
+RWTexture2D<float> _JacobianMap;
+
+uint _Resolution;
+float _ChoppyStrength;
+float _TexelSize; // 1.0 / resolution — size of one pixel step in UV space
+
+[numthreads(8, 8, 1)]
+void ComputeJacobian(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _Resolution || id.y >= _Resolution)
+        return;
+
+    // Neighbor coordinates with wrapping (the ocean tiles)
+    uint xL = (id.x - 1 + _Resolution) % _Resolution;
+    uint xR = (id.x + 1) % _Resolution;
+    uint yD = (id.y - 1 + _Resolution) % _Resolution;
+    uint yU = (id.y + 1) % _Resolution;
+
+    // Sample displacement X at 4 neighbors
+    float dxL = _DisplaceXMap.Load(int3(xL, id.y, 0)).x;
+    float dxR = _DisplaceXMap.Load(int3(xR, id.y, 0)).x;
+    float dxD = _DisplaceXMap.Load(int3(id.x, yD, 0)).x;
+    float dxU = _DisplaceXMap.Load(int3(id.x, yU, 0)).x;
+
+    // Sample displacement Z at 4 neighbors
+    float dzL = _DisplaceZMap.Load(int3(xL, id.y, 0)).x;
+    float dzR = _DisplaceZMap.Load(int3(xR, id.y, 0)).x;
+    float dzD = _DisplaceZMap.Load(int3(id.x, yD, 0)).x;
+    float dzU = _DisplaceZMap.Load(int3(id.x, yU, 0)).x;
+
+    // Partial derivatives via central differences (divided by 2 texels)
+    float dDx_dx = (dxR - dxL) / (2.0 * _TexelSize);
+    float dDx_dz = (dxU - dxD) / (2.0 * _TexelSize);
+    float dDz_dx = (dzR - dzL) / (2.0 * _TexelSize);
+    float dDz_dz = (dzU - dzD) / (2.0 * _TexelSize);
+    
+    float J = ((1 + _ChoppyStrength * dDx_dx) * (1 + _ChoppyStrength * dDz_dz)) - ((_ChoppyStrength * dDx_dz) * (_ChoppyStrength * dDz_dx));
+
+    _JacobianMap[id.xy] = J;
+}

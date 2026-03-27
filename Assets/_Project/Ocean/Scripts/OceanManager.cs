@@ -28,6 +28,7 @@ namespace PirateSeas.Ocean
         [SerializeField] private ComputeShader _spectrumShader;
         [SerializeField] private ComputeShader _timeSpectrumShader;
         [SerializeField] private ComputeShader _fftButterflyShader;
+        [SerializeField] private ComputeShader _jacobianShader;
 
         [Header("Debug")]
         [Tooltip("Toggle in play mode to regenerate spectrum with current SO values.")]
@@ -74,7 +75,7 @@ namespace PirateSeas.Ocean
                 return;
             }
 
-            _fft = new OceanFFT(_spectrumShader, _timeSpectrumShader, _fftButterflyShader);
+            _fft = new OceanFFT(_spectrumShader, _timeSpectrumShader, _jacobianShader, _fftButterflyShader);
             _fft.Initialize(_settings);
         }
 
@@ -86,13 +87,14 @@ namespace PirateSeas.Ocean
             }
             else if (_fft != null)
             {
-                _fft.Update(_settings, Time.time);
+                _fft.Update(_settings, Time.time * _settings.timeScale, _oceanMaterial.GetFloat("_ChoppyStrength"));
 
                 if (_oceanMaterial != null && _fft.HeightMap != null)
                 {
                     _oceanMaterial.SetTexture("_HeightMap", _fft.HeightMap);
                     _oceanMaterial.SetTexture("_DisplaceXMap", _fft.DisplaceXMap);
                     _oceanMaterial.SetTexture("_DisplaceZMap", _fft.DisplaceZMap);
+                    _oceanMaterial.SetTexture("_JacobianMap", _fft.JacobianMap);
                     _oceanMaterial.SetFloat("_MeshSize", _settings.meshSize);
                 }
             }

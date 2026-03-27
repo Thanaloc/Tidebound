@@ -67,6 +67,10 @@ namespace PirateSeas.Ocean
         [Tooltip("Suppresses wavelengths below this (meters).")]
         [Range(0f, 5f)]
         public float smallWaveCutoff = 0.5f;
+
+        [Tooltip("Increase global time speed for waves only")]
+        [Range(1f, 5f)]
+        public float timeScale = 2f;
     }
 
     [System.Serializable]

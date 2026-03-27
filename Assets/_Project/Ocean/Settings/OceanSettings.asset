@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: OceanSettings
   m_EditorClassIdentifier: Assembly-CSharp::PirateSeas.Ocean.OceanSettings
   meshResolution: 512
-  meshSize: 500
+  meshSize: 450
   waves:
   - amplitude: 1
     wavelength: 40
@@ -31,8 +31,9 @@ MonoBehaviour:
     direction: {x: -0.3, y: 0.8}
     steepness: 0.5
   fftResolution: 256
-  spectrumScale: 0.001
-  windSpeed: 30
+  spectrumScale: 0.003
+  windSpeed: 20
   windDirection: {x: 1, y: 0}
-  windDependency: 4
-  smallWaveCutoff: 0.5
+  windDependency: 6
+  smallWaveCutoff: 0.1
+  timeScale: 2
