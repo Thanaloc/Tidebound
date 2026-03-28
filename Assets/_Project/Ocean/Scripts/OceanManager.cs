@@ -37,6 +37,7 @@ namespace PirateSeas.Ocean
         private OceanMeshGenerator _meshGen;
         private GerstnerWaves _gerstner;
         private OceanFFT _fft;
+        private WaveReadback _waveReadback;
 
         private void Awake()
         {
@@ -77,6 +78,7 @@ namespace PirateSeas.Ocean
 
             _fft = new OceanFFT(_spectrumShader, _timeSpectrumShader, _jacobianShader, _fftButterflyShader);
             _fft.Initialize(_settings);
+            _waveReadback = new WaveReadback(_settings.fftResolution, _settings.meshSize);
         }
 
         private void Update()
@@ -96,6 +98,8 @@ namespace PirateSeas.Ocean
                     _oceanMaterial.SetTexture("_DisplaceZMap", _fft.DisplaceZMap);
                     _oceanMaterial.SetTexture("_JacobianMap", _fft.JacobianMap);
                     _oceanMaterial.SetFloat("_MeshSize", _settings.meshSize);
+
+                    _waveReadback.RequestReadback(_fft.HeightMap, _fft.DisplaceXMap, _fft.DisplaceZMap);
                 }
             }
         }
@@ -122,12 +126,11 @@ namespace PirateSeas.Ocean
         {
             if (_mode == OceanMode.Gerstner)
                 return _gerstner.GetDisplacementAt(x, z, Time.time);
-            return Vector3.zero;
-        }
 
-        public float GetWaveHeightAt(float x, float z)
-        {
-            return GetWaveDisplacementAt(x, z).y;
+            if (_waveReadback == null)
+                return Vector3.zero;
+
+            return _waveReadback.GetDisplacement(new Vector3(x, 0, z), _oceanMaterial.GetFloat("_DisplacementStrength"), _oceanMaterial.GetFloat("_ChoppyStrength"));
         }
 
 #if UNITY_EDITOR
