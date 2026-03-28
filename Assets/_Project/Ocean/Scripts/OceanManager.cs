@@ -1,5 +1,6 @@
 using UnityEngine;
 using PirateSeas.Ocean.FFT;
+using Ocean;
 
 namespace PirateSeas.Ocean
 {
@@ -29,6 +30,10 @@ namespace PirateSeas.Ocean
         [SerializeField] private ComputeShader _timeSpectrumShader;
         [SerializeField] private ComputeShader _fftButterflyShader;
         [SerializeField] private ComputeShader _jacobianShader;
+
+        [Header("Tiling")]
+        [SerializeField] private OceanTiling _OceanTiling;
+        [SerializeField] private Transform _Follower;
 
         [Header("Debug")]
         [Tooltip("Toggle in play mode to regenerate spectrum with current SO values.")]
@@ -64,6 +69,10 @@ namespace PirateSeas.Ocean
             {
                 InitializeFFT();
             }
+
+            _OceanTiling.Initialize(_settings.meshSize);
+            _OceanTiling.CreateTiles(_meshGen.Mesh, _oceanMaterial);
+            GetComponent<MeshRenderer>().enabled = false;
         }
 
         private void InitializeFFT()
@@ -101,6 +110,8 @@ namespace PirateSeas.Ocean
 
                     _waveReadback.RequestReadback(_fft.HeightMap, _fft.DisplaceXMap, _fft.DisplaceZMap);
                 }
+
+                _OceanTiling.UpdateTiling(_Follower.position);
             }
         }
 
