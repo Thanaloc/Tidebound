@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.custom.fpscontroller": {
+      "version": "https://github.com/Thanaloc/FPSController.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.inputsystem": "1.11.2"
+      },
+      "hash": "811dd33414232768db6dcce25d6c57b50698eccf"
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.10",
       "depth": 0,
