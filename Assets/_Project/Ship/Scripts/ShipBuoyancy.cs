@@ -10,7 +10,10 @@ namespace Ship
         [SerializeField] private Vector3 _LeftOfShip;
         [SerializeField] private Vector3 _BackOfShip;
         [SerializeField] private float _HeightOffset = 0.5f;
-        [SerializeField] private float _SmoothSpeed = 8f;
+        [SerializeField] private float _SmoothRotation = 0.3f;
+        [SerializeField] private float _HeightSmoothTime = 0.3f;
+
+        private float _heightVelocity;
 
         void Update()
         {
@@ -41,9 +44,9 @@ namespace Ship
             Vector3 waveEulers = waveRotation.eulerAngles;
             Quaternion targetRotation = Quaternion.Euler(waveEulers.x, shipYaw, waveEulers.z);
 
-            float smoothFactor = _SmoothSpeed * Time.deltaTime;
+            float smoothFactor = _SmoothRotation * Time.deltaTime;
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothFactor);
-            float smoothedHeight = Mathf.Lerp(transform.position.y, targetHeight, smoothFactor);
+            float smoothedHeight = Mathf.SmoothDamp(transform.position.y, targetHeight, ref _heightVelocity, _HeightSmoothTime);
             transform.position = new Vector3(transform.position.x, smoothedHeight, transform.position.z);
         }
     }

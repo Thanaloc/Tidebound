@@ -9,7 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f73325091999dd8468a9e397262a50f4, type: 3}
+  m_Script: {fileID: 11500000, guid: 4a8c0076efaf5a24a957551ad9566dea, type: 3}
   m_Name: PlayerSettings
   m_EditorClassIdentifier: Custom.FPSController::FPSController.FPSControllerSettingsSO
   SprintFOVMultiplier: 0.17
+  JumpForce: 5
