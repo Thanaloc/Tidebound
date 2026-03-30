@@ -13,6 +13,7 @@ namespace Ship
         private float _aimedSpeed = 0;
         private float _wheelDirection = 0;
         public bool _isAnchorDown = false;
+        
 
         private void Update()
         {
@@ -37,7 +38,7 @@ namespace Ship
 
         public void SetRudder(float direction)
         {
-
+            _wheelDirection = direction;
         }
 
         public void SetAnchor (bool dropped)

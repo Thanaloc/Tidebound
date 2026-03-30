@@ -4,7 +4,7 @@ namespace Player
     {
         bool HoldInteraction { get; }
 
-        void OnInteractionTriggered();
+        void OnInteractionTriggered(PlayerInteraction interact);
         void OnRaycastHitEnter();
         void OnRaycastHitExit();
     }

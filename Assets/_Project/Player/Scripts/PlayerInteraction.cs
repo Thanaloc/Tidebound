@@ -1,4 +1,6 @@
+using FPSController;
 using Player;
+using Ship;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,6 +8,14 @@ public class PlayerInteraction : MonoBehaviour
 {
     [SerializeField] private Transform _PlayerCam;
     [SerializeField] private InputActionReference _InteractActionRef;
+
+    [SerializeField] private PlayerMotor _PlayerMotor;
+    [SerializeField] private PlayerInputHandler _PlayerInputHandler;
+    [SerializeField] private ShipPassenger _ShipPassenger;
+
+    public PlayerMotor PlayerMotor { get { return _PlayerMotor; } }
+    public ShipPassenger ShipPassenger { get { return _ShipPassenger; } }
+    public Vector2 MoveInput { get { return _PlayerInputHandler.MoveInput; } }
 
     private LayerMask _interactableLayerMask;
     private IInteractable _currentLookedInteractable = null;
@@ -28,12 +38,12 @@ public class PlayerInteraction : MonoBehaviour
         {
             if (_currentCapturedInteractable != null)
             {
-                _currentCapturedInteractable.OnInteractionTriggered();
+                _currentCapturedInteractable.OnInteractionTriggered(this);
                 _currentCapturedInteractable = null;
             }
             else if (_currentLookedInteractable != null)
             {
-                _currentLookedInteractable.OnInteractionTriggered();
+                _currentLookedInteractable.OnInteractionTriggered(this);
 
                 if (_currentLookedInteractable.HoldInteraction)
                     _currentCapturedInteractable = _currentLookedInteractable;

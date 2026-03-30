@@ -151,6 +151,37 @@ Transform:
   - {fileID: 547930703}
   m_Father: {fileID: 1895147485}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &444857947
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 444857948}
+  m_Layer: 0
+  m_Name: PlayerWheelPos
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &444857948
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 444857947}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.00044, y: -0.02845, z: 0.02952}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1389382006}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &547930700
 GameObject:
   m_ObjectHideFlags: 0
@@ -430,9 +461,9 @@ Transform:
   m_GameObject: {fileID: 807919303}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.01133, y: -0.03719, z: 0.0323}
-  m_LocalScale: {x: 0.0026666666, y: 0.0026666666, z: 0.0026666666}
-  m_ConstrainProportionsScale: 1
+  m_LocalPosition: {x: -0.00018, y: -0.02607, z: 0.03406}
+  m_LocalScale: {x: 0.00808926, y: 0.0005017881, z: 0.0076713236}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1389382006}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -523,9 +554,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 807919303}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 31dcfef706533cb469a67efa78a0a0db, type: 3}
+  m_Script: {fileID: 11500000, guid: 347fd2b5c10d12c4ba3a4a25682106f1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TestInteractable
+  m_EditorClassIdentifier: Assembly-CSharp::Ship.ShipWheel
+  _ShipMovement: {fileID: 1189442508}
+  _PlayerWheelPosition: {fileID: 444857948}
 --- !u!1 &860106343
 GameObject:
   m_ObjectHideFlags: 0
@@ -723,6 +756,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: afc15368f2e479c458fd00da512b1103, type: 3}
       insertIndex: -1
       addedObject: {fileID: 807919304}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: afc15368f2e479c458fd00da512b1103, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 444857948}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: afc15368f2e479c458fd00da512b1103, type: 3}
       insertIndex: -1
@@ -1443,6 +1479,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
   _PlayerCam: {fileID: 547930703}
   _InteractActionRef: {fileID: 1781555164194001046, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  _PlayerMotor: {fileID: 1895147490}
+  _PlayerInputHandler: {fileID: 1895147491}
+  _ShipPassenger: {fileID: 1895147486}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

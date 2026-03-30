@@ -5,7 +5,7 @@ public class TestInteractable : MonoBehaviour, IInteractable
 {
     public bool HoldInteraction => true;
 
-    public void OnInteractionTriggered()
+    public void OnInteractionTriggered(PlayerInteraction interact)
     {
         Debug.Log("on interaction triggered");
     }
