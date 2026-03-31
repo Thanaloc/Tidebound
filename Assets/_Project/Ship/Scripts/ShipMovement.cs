@@ -12,9 +12,10 @@ namespace Ship
         private float _currentSpeed = 0;
         private float _aimedSpeed = 0;
         private float _wheelDirection = 0;
-        public bool _isAnchorDown = false;
-        
+        private bool _isAnchorDown = false;
 
+        public bool IsAnchorDown => _isAnchorDown;
+        
         private void Update()
         {
             if (!_isAnchorDown)

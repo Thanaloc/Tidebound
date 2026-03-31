@@ -55,13 +55,12 @@ public class PlayerInteraction : MonoBehaviour
 
         RaycastHit hit;
 
-        if (Physics.SphereCast(_PlayerCam.position, 0.4f, _PlayerCam.forward, out hit, 3.5f, _interactableLayerMask))
+        if (Physics.SphereCast(_PlayerCam.position, 0.4f, _PlayerCam.forward, out hit, 1f, _interactableLayerMask))
         {
             var interactable = hit.collider.GetComponent<IInteractable>();
 
 #if UNITY_EDITOR
             Debug.DrawRay(_PlayerCam.position, _PlayerCam.forward * hit.distance, Color.green);
-            Debug.Log("Did Hit");
 #endif
 
             if (interactable.Equals(_currentLookedInteractable))
@@ -77,7 +76,6 @@ public class PlayerInteraction : MonoBehaviour
         {
 #if UNITY_EDITOR
             Debug.DrawRay(_PlayerCam.position, _PlayerCam.forward * 1000, Color.white);
-            Debug.Log("Did not Hit");
 #endif
 
             if (_currentLookedInteractable != null)

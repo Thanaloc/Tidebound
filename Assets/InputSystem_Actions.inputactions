@@ -991,6 +991,34 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Gameplay",
+            "id": "4589447d-7c30-40d0-acc4-1b546a73d2e3",
+            "actions": [
+                {
+                    "name": "Reload",
+                    "type": "Button",
+                    "id": "807d00c2-a8a7-47d3-b4e2-b1a429a02a4c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "c5cb1e2a-f40c-4925-9fac-998e6884f7af",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Reload",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": [

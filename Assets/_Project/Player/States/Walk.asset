@@ -16,4 +16,4 @@ MonoBehaviour:
   ColliderHeight: 2
   CameraHeight: 1.6
   BobFrequency: 10
-  BobAmplitude: 0.01
+  BobAmplitude: 0.0016666665
