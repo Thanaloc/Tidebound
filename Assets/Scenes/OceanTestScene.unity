@@ -832,6 +832,8 @@ MonoBehaviour:
   _AccelRatio: 0.007
   _DeccelRatio: 0.025
   _RotationSpeed: 20
+  _CollisionCheckRadius: 3
+  _CollisionCheckDistance: 5
 --- !u!114 &1189442509
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -993,7 +995,7 @@ GameObject:
   - component: {fileID: 1312588277}
   - component: {fileID: 1312588276}
   - component: {fileID: 1312588275}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Island
   m_TagString: Untagged
   m_Icon: {fileID: 0}
