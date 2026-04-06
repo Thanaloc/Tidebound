@@ -9,7 +9,8 @@ namespace Ship
         [SerializeField] private ShipMovement _ShipMovement;
         [SerializeField] private Transform _PlayerWheelPosition;
 
-        private float _putPlayerOnWheelSpeed = 3f;
+        [SerializeField] private float _PutPlayerOnWheelSpeed = 3f;
+
         private PlayerInteraction _playerInteraction;
         private bool _isPlayerSteering = false;
         private bool _isPlayerInPosition = false;

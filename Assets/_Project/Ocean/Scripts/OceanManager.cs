@@ -44,6 +44,9 @@ namespace PirateSeas.Ocean
         private OceanFFT _fft;
         private WaveReadback _waveReadback;
 
+        private float _cachedDisplacementStrength;
+        private float _cachedChoppyStrength;
+
         private void Awake()
         {
             if (_settings == null)
@@ -98,7 +101,10 @@ namespace PirateSeas.Ocean
             }
             else if (_fft != null)
             {
-                _fft.Update(_settings, Time.time * _settings.timeScale, _oceanMaterial.GetFloat("_ChoppyStrength"));
+                _cachedChoppyStrength = _oceanMaterial.GetFloat("_ChoppyStrength");
+                _cachedDisplacementStrength = _oceanMaterial.GetFloat("_DisplacementStrength");
+
+                _fft.Update(_settings, Time.time * _settings.timeScale, _cachedChoppyStrength);
 
                 if (_oceanMaterial != null && _fft.HeightMap != null)
                 {
@@ -109,6 +115,8 @@ namespace PirateSeas.Ocean
                     _oceanMaterial.SetFloat("_MeshSize", _settings.meshSize);
 
                     _waveReadback.RequestReadback(_fft.HeightMap, _fft.DisplaceXMap, _fft.DisplaceZMap);
+
+
                 }
 
                 _OceanTiling.UpdateTiling(_Follower.position);
@@ -141,7 +149,7 @@ namespace PirateSeas.Ocean
             if (_waveReadback == null)
                 return Vector3.zero;
 
-            return _waveReadback.GetDisplacement(new Vector3(x, 0, z), _oceanMaterial.GetFloat("_DisplacementStrength"), _oceanMaterial.GetFloat("_ChoppyStrength"));
+            return _waveReadback.GetDisplacement(new Vector3(x, 0, z), _cachedDisplacementStrength, _cachedChoppyStrength);
         }
 
 #if UNITY_EDITOR

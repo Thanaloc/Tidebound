@@ -13,6 +13,8 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField] private PlayerInputHandler _PlayerInputHandler;
     [SerializeField] private ShipPassenger _ShipPassenger;
 
+    [SerializeField] private float _InteractionRange = 3f;
+
     public PlayerMotor PlayerMotor { get { return _PlayerMotor; } }
     public ShipPassenger ShipPassenger { get { return _ShipPassenger; } }
     public Vector2 MoveInput { get { return _PlayerInputHandler.MoveInput; } }
@@ -55,7 +57,7 @@ public class PlayerInteraction : MonoBehaviour
 
         RaycastHit hit;
 
-        if (Physics.SphereCast(_PlayerCam.position, 0.4f, _PlayerCam.forward, out hit, 1f, _interactableLayerMask))
+        if (Physics.SphereCast(_PlayerCam.position, 0.4f, _PlayerCam.forward, out hit, _InteractionRange, _interactableLayerMask))
         {
             var interactable = hit.collider.GetComponent<IInteractable>();
 

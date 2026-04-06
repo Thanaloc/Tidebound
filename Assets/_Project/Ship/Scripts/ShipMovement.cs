@@ -6,8 +6,8 @@ namespace Ship
     public class ShipMovement : MonoBehaviour
     {
         [SerializeField] private float _MaxSpeed = 9f;
-        [SerializeField] private float _AccelRatio = .007f;
-        [SerializeField] private float _DeccelRatio = .025f;
+        [SerializeField] private float _Acceleration = 2f;
+        [SerializeField] private float _Deceleration = 5f;
         [SerializeField] private float _RotationSpeed = 20f;
 
         [Header("Collision")]
@@ -31,15 +31,9 @@ namespace Ship
         private void Update()
         {
             if (!_isAnchorDown)
-            {
-                _aimedSpeed = _MaxSpeed;
-                _currentSpeed = Mathf.Lerp(_currentSpeed, _aimedSpeed, _AccelRatio);
-            }
+                _currentSpeed = Mathf.MoveTowards(_currentSpeed, _MaxSpeed, _Acceleration * Time.deltaTime);
             else
-            {
-                _aimedSpeed = 0;
-                _currentSpeed = Mathf.Lerp(_currentSpeed, _aimedSpeed, _DeccelRatio);
-            }
+                _currentSpeed = Mathf.MoveTowards(_currentSpeed, 0f, _Deceleration * Time.deltaTime);
 
             if (_wheelDirection != 0)
             {
@@ -62,7 +56,7 @@ namespace Ship
             _wheelDirection = direction;
         }
 
-        public void SetAnchor (bool dropped)
+        public void SetAnchor(bool dropped)
         {
             _isAnchorDown = dropped;
         }
