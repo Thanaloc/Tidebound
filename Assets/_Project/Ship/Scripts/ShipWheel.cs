@@ -77,7 +77,7 @@ namespace Ship
 
             while (Vector3.Distance(playerTransform.position, _PlayerWheelPosition.position) > 0.01f)
             {
-                playerTransform.position = Vector3.MoveTowards(playerTransform.position, _PlayerWheelPosition.position, _putPlayerOnWheelSpeed * Time.deltaTime);
+                playerTransform.position = Vector3.MoveTowards(playerTransform.position, _PlayerWheelPosition.position, _PutPlayerOnWheelSpeed * Time.deltaTime);
                 yield return null;
             }
 

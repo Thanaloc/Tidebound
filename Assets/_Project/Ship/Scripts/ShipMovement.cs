@@ -17,7 +17,6 @@ namespace Ship
         private LayerMask _islandLayerMask;
 
         private float _currentSpeed = 0;
-        private float _aimedSpeed = 0;
         private float _wheelDirection = 0;
         private bool _isAnchorDown = false;
 

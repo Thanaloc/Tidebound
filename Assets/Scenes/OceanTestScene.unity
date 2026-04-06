@@ -559,6 +559,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Ship.ShipWheel
   _ShipMovement: {fileID: 1189442508}
   _PlayerWheelPosition: {fileID: 444857948}
+  _PutPlayerOnWheelSpeed: 3
 --- !u!1 &860106343
 GameObject:
   m_ObjectHideFlags: 0
@@ -829,8 +830,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ship.ShipMovement
   _MaxSpeed: 9
-  _AccelRatio: 0.007
-  _DeccelRatio: 0.025
+  _Acceleration: 2
+  _Deceleration: 5
   _RotationSpeed: 20
   _CollisionCheckRadius: 3
   _CollisionCheckDistance: 5
@@ -1052,7 +1053,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 94f1ce84aee1f1c44b140c7363bf70ee, type: 2}
+  - {fileID: 2100000, guid: fccc8589024653249b0435a15755a959, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1772,6 +1773,7 @@ MonoBehaviour:
   _PlayerMotor: {fileID: 1895147490}
   _PlayerInputHandler: {fileID: 1895147491}
   _ShipPassenger: {fileID: 1895147486}
+  _InteractionRange: 3
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
