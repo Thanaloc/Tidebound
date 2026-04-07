@@ -5,28 +5,15 @@ namespace PirateSeas.Island
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class IslandGenerator : MonoBehaviour
     {
-        [Header("Registry")]
-        [SerializeField] private IslandRegistry _IslandRegistry;
-
-        [Header("Mesh")]
-        [SerializeField] private int _Resolution = 256;
-        [SerializeField] private float _Size = 200f;
-
         [Header("Noise")]
         [SerializeField] private float _NoiseFloor = 10f;
-        [SerializeField] private float _Seed = 0f;
         [SerializeField] private int _Octaves = 3;
         [SerializeField] private float _BaseFrequency = 0.02f;
-        [SerializeField] private float _BaseAmplitude = 30f;
 
         [Header("Island Shape")]
         [SerializeField] private float _MinCenterHeight = 3f;
         [SerializeField] private float _FalloffStrength = 3f;
         [SerializeField] private float _SubmergeOffset = 5f;
-
-        [Header("Ocean Attenuation")]
-        [SerializeField] private float _InnerRadius = 40f;
-        [SerializeField] private float _OuterRadius = 80f;
 
         [Header("Shaping")]
         [SerializeField] private float _BeachHeight = 2f;
@@ -36,19 +23,53 @@ namespace PirateSeas.Island
         private Mesh _mesh;
         private Vector3[] _vertices;
         private int[] _triangles;
+        private IslandRegistry _islandRegistry;
 
-        public float InnerRadius => _InnerRadius;
-        public float OuterRadius => _OuterRadius;
+        private float _seed;
+        private float _size;
+
+        private float _innerRadius;
+        private float _outerRadius;
+
+        private float _maskNoiseStrength;
+        private float _maskNoiseFrequency;
+
+        private int _resolution;
+
+        private float _baseAmplitude;
+
+        private Vector2 _peakOffset;
+
+        public float InnerRadius => _innerRadius;
+        public float OuterRadius => _outerRadius;
 
         private void OnDisable()
         {
-            _IslandRegistry.Unregister(this);
+            if (_islandRegistry != null)
+                _islandRegistry.Unregister(this);
         }
 
-        private void Start()
+        public void Initialize(float size, float seed, IslandRegistry registry, IslandConfigSO config)
         {
-            _IslandRegistry.Register(this);
-            _Seed = Random.Range(0f, 10000f);
+            float t = Mathf.InverseLerp(config.MinSize, config.MaxSize, size);
+
+            _peakOffset = new Vector2( Random.Range(-_size * 0.15f, _size * 0.15f),Random.Range(-_size * 0.15f, _size * 0.15f));
+
+            _size = size;
+            _seed = seed;
+            _islandRegistry = registry;
+
+            _innerRadius = _size * config.InnerRadiusRatio;
+            _outerRadius = _size * config.OuterRadiusRatio;
+            _baseAmplitude = _size * config.AmplitudeRatio;
+            _SubmergeOffset = _size * config.SubmergeRatio;
+            _BaseFrequency = config.FrequencyFactor / _size;
+            _NoiseFloor = Mathf.Lerp(config.NoiseFloorMin, config.NoiseFloorMax, t);
+            _resolution = _size > 300 ? 256 : 128;
+            _maskNoiseStrength = Mathf.Lerp(config.MaskNoiseStrengthMax, config.MaskNoiseStrengthMin, t);
+            _maskNoiseFrequency = Mathf.Lerp(config.MaskNoiseFreqMax, config.MaskNoiseFreqMin, t);
+
+            _islandRegistry.Register(this);
             GenerateIsland();
         }
 
@@ -64,7 +85,7 @@ namespace PirateSeas.Island
         {
             _mesh = new Mesh();
             _mesh.name = "IslandMesh";
-            if (_Resolution > 255)
+            if (_resolution > 255)
                 _mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
             GenerateVertices();
@@ -84,17 +105,17 @@ namespace PirateSeas.Island
 
         private void GenerateVertices()
         {
-            int vertCount = (_Resolution + 1) * (_Resolution + 1);
+            int vertCount = (_resolution + 1) * (_resolution + 1);
             _vertices = new Vector3[vertCount];
 
-            float halfSize = _Size / 2f;
-            float step = _Size / _Resolution;
+            float halfSize = _size / 2f;
+            float step = _size / _resolution;
 
-            for (int z = 0; z <= _Resolution; z++)
+            for (int z = 0; z <= _resolution; z++)
             {
-                for (int x = 0; x <= _Resolution; x++)
+                for (int x = 0; x <= _resolution; x++)
                 {
-                    int index = z * (_Resolution + 1) + x;
+                    int index = z * (_resolution + 1) + x;
 
                     float worldX = x * step - halfSize;
                     float worldZ = z * step - halfSize;
@@ -124,11 +145,11 @@ namespace PirateSeas.Island
         {
             float total = 0f;
             float frequency = _BaseFrequency;
-            float amplitude = _BaseAmplitude;
+            float amplitude = _baseAmplitude;
 
             for (int i = 0; i < _Octaves; i++)
             {
-                float noise = Mathf.PerlinNoise((x + _Seed) * frequency, (z + _Seed) * frequency);
+                float noise = Mathf.PerlinNoise((x + _seed) * frequency, (z + _seed) * frequency);
                 noise = (noise - 0.5f) * 2f * amplitude;
                 total += noise;
                 frequency *= 2f;
@@ -140,8 +161,8 @@ namespace PirateSeas.Island
 
         private float RadialMask(float x, float z, float halfSize)
         {
-            float distance = Mathf.Sqrt(x * x + z * z);
-            float noise = Mathf.PerlinNoise((x + _Seed) * 0.03f, (z + _Seed) * 0.03f) * 0.4f;
+            float distance = Mathf.Sqrt((x - _peakOffset.x) * (x - _peakOffset.x) + (z - _peakOffset.y) * (z - _peakOffset.y));
+            float noise = Mathf.PerlinNoise((x + _seed) * _maskNoiseFrequency, (z + _seed) * _maskNoiseFrequency) * _maskNoiseStrength;
             distance = Mathf.Clamp01((distance / halfSize) + noise - 0.2f);
             float mask = Mathf.Pow(1 - distance, _FalloffStrength);
             return mask;
@@ -149,15 +170,15 @@ namespace PirateSeas.Island
 
         private void GenerateTriangles()
         {
-            _triangles = new int[_Resolution * _Resolution * 6];
+            _triangles = new int[_resolution * _resolution * 6];
             int tri = 0;
 
-            for (int z = 0; z < _Resolution; z++)
+            for (int z = 0; z < _resolution; z++)
             {
-                for (int x = 0; x < _Resolution; x++)
+                for (int x = 0; x < _resolution; x++)
                 {
-                    int current = z * (_Resolution + 1) + x;
-                    int next = current + _Resolution + 1;
+                    int current = z * (_resolution + 1) + x;
+                    int next = current + _resolution + 1;
 
                     _triangles[tri++] = current;
                     _triangles[tri++] = next;
