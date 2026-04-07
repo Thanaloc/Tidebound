@@ -1,6 +1,7 @@
 using UnityEngine;
 using PirateSeas.Ocean.FFT;
 using Ocean;
+using PirateSeas.Island;
 
 namespace PirateSeas.Ocean
 {
@@ -34,6 +35,9 @@ namespace PirateSeas.Ocean
         [Header("Tiling")]
         [SerializeField] private OceanTiling _OceanTiling;
         [SerializeField] private Transform _Follower;
+
+        [Header("Registry Island")]
+        [SerializeField] private IslandRegistry _IslandRegistry;
 
         [Header("Debug")]
         [Tooltip("Toggle in play mode to regenerate spectrum with current SO values.")]
@@ -149,7 +153,16 @@ namespace PirateSeas.Ocean
             if (_waveReadback == null)
                 return Vector3.zero;
 
-            return _waveReadback.GetDisplacement(new Vector3(x, 0, z), _cachedDisplacementStrength, _cachedChoppyStrength);
+            Vector3 displacement = _waveReadback.GetDisplacement(
+                new Vector3(x, 0, z),
+                _cachedDisplacementStrength,
+                _cachedChoppyStrength
+            );
+
+            if (_IslandRegistry != null)
+                displacement *= _IslandRegistry.GetAttenuationAt(x, z);
+
+            return displacement;
         }
 
 #if UNITY_EDITOR

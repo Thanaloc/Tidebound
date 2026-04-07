@@ -5,8 +5,11 @@ namespace PirateSeas.Island
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class IslandGenerator : MonoBehaviour
     {
+        [Header("Registry")]
+        [SerializeField] private IslandRegistry _IslandRegistry;
+
         [Header("Mesh")]
-        [SerializeField] private int _Resolution = 128;
+        [SerializeField] private int _Resolution = 256;
         [SerializeField] private float _Size = 200f;
 
         [Header("Noise")]
@@ -22,16 +25,29 @@ namespace PirateSeas.Island
         [SerializeField] private float _SubmergeOffset = 5f;
 
         [Header("Ocean Attenuation")]
-        [SerializeField] private Material _OceanMaterial;
         [SerializeField] private float _InnerRadius = 40f;
         [SerializeField] private float _OuterRadius = 80f;
+
+        [Header("Shaping")]
+        [SerializeField] private float _BeachHeight = 2f;
+        [SerializeField] private float _TerraceHeight = 5f;
+        [SerializeField][Range(0f, 1f)] private float _TerraceStrength = 0.5f;
 
         private Mesh _mesh;
         private Vector3[] _vertices;
         private int[] _triangles;
 
+        public float InnerRadius => _InnerRadius;
+        public float OuterRadius => _OuterRadius;
+
+        private void OnDisable()
+        {
+            _IslandRegistry.Unregister(this);
+        }
+
         private void Start()
         {
+            _IslandRegistry.Register(this);
             _Seed = Random.Range(0f, 10000f);
             GenerateIsland();
         }
@@ -64,12 +80,6 @@ namespace PirateSeas.Island
                 collider = gameObject.AddComponent<MeshCollider>();
             collider.sharedMesh = _mesh;
 
-            if (_OceanMaterial != null)
-            {
-                _OceanMaterial.SetVector("_IslandCenter", transform.position);
-                _OceanMaterial.SetFloat("_IslandInnerRadius", _InnerRadius);
-                _OceanMaterial.SetFloat("_IslandOuterRadius", _OuterRadius);
-            }
         }
 
         private void GenerateVertices()
@@ -94,6 +104,16 @@ namespace PirateSeas.Island
 
                     float minHeight = mask * _MinCenterHeight;
                     float finalHeight = Mathf.Max(minHeight, height * mask) - _SubmergeOffset;
+
+                    float shapingWeight = Mathf.SmoothStep(-1f, 0.5f, finalHeight);
+
+                    float beachBlend = 1 - Mathf.SmoothStep(0, _BeachHeight, finalHeight);
+                    float shaped = Mathf.Lerp(finalHeight, _BeachHeight * 0.3f, beachBlend);
+
+                    float stepped = Mathf.Round(shaped / _TerraceHeight) * _TerraceHeight;
+                    shaped = Mathf.Lerp(shaped, stepped, _TerraceStrength);
+
+                    finalHeight = Mathf.Lerp(finalHeight, shaped, shapingWeight);
 
                     _vertices[index] = new Vector3(worldX, finalHeight, worldZ);
                 }

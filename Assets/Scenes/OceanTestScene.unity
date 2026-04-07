@@ -119,6 +119,51 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &63079521
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 63079523}
+  - component: {fileID: 63079522}
+  m_Layer: 0
+  m_Name: IslandRegistry
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &63079522
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 63079521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f707dc84968ecab479fde02b02d88223, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PirateSeas.Island.IslandRegistry
+  _OceanMat: {fileID: 2100000, guid: 12b00f8d00583ff4893a415929b4033e, type: 2}
+--- !u!4 &63079523
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 63079521}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &139952606
 GameObject:
   m_ObjectHideFlags: 0
@@ -835,6 +880,7 @@ MonoBehaviour:
   _RotationSpeed: 20
   _CollisionCheckRadius: 3
   _CollisionCheckDistance: 5
+  _PushBackForce: 2
 --- !u!114 &1189442509
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -853,8 +899,8 @@ MonoBehaviour:
   _LeftOfShip: {x: -3, y: 0, z: 0}
   _BackOfShip: {x: 0, y: 0, z: -5}
   _HeightOffset: 0.5
-  _SmoothRotation: 0.3
-  _HeightSmoothTime: 0.3
+  _SmoothRotation: 0.6
+  _HeightSmoothTime: 0.8
 --- !u!4 &1189442510
 Transform:
   m_ObjectHideFlags: 0
@@ -1015,19 +1061,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ca9b326b027e0e47b5a117501e5f9e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PirateSeas.Island.IslandGenerator
-  _Resolution: 128
-  _Size: 80
+  _IslandRegistry: {fileID: 63079522}
+  _Resolution: 256
+  _Size: 200
   _NoiseFloor: 20
   _Seed: 0
   _Octaves: 3
   _BaseFrequency: 0.05
-  _BaseAmplitude: 30
+  _BaseAmplitude: 18
   _MinCenterHeight: 3
   _FalloffStrength: 2
   _SubmergeOffset: 0.1
-  _OceanMaterial: {fileID: 2100000, guid: 12b00f8d00583ff4893a415929b4033e, type: 2}
-  _InnerRadius: 80
-  _OuterRadius: 125
+  _InnerRadius: 200
+  _OuterRadius: 250
+  _BeachHeight: 2
+  _TerraceHeight: 3
+  _TerraceStrength: 0.3
 --- !u!23 &1312588276
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1094,7 +1143,7 @@ Transform:
   m_GameObject: {fileID: 1312588274}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -100, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 200}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1483,6 +1532,7 @@ MonoBehaviour:
   _jacobianShader: {fileID: 7200000, guid: f288956746b9a224bac5be527fc62812, type: 3}
   _OceanTiling: {fileID: 1888963888}
   _Follower: {fileID: 547930703}
+  _IslandRegistry: {fileID: 63079522}
   _regenerate: 0
 --- !u!114 &1888963883
 MonoBehaviour:
@@ -1787,3 +1837,4 @@ SceneRoots:
   - {fileID: 1189442510}
   - {fileID: 1312588278}
   - {fileID: 1325080372}
+  - {fileID: 63079523}

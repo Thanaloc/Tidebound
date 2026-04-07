@@ -43,11 +43,6 @@ Shader "PirateSeas/OceanSurface"
         _FoamThreshold("Foam Threshold", Range(0, 2)) = 1.0
         _FoamColor("Foam Color", Color) = (1, 1, 1, 1)
         [HideInInspector] _JacobianMap ("", 2D) = "black" {}
-
-        [Header(Island Attenuation)]
-        _IslandCenter ("Island Center", Vector) = (0, 0, 0, 0)
-        _IslandInnerRadius ("Inner Radius", Float) = 40
-        _IslandOuterRadius ("Outer Radius", Float) = 80
     }
 
     SubShader
@@ -104,11 +99,13 @@ Shader "PirateSeas/OceanSurface"
                 float _FoamIntensity;
                 float _FoamThreshold;
                 half4 _FoamColor;
-
-                float4 _IslandCenter;
-                float _IslandInnerRadius;
-                float _IslandOuterRadius;
             CBUFFER_END
+
+                int _IslandCount;
+
+                float4 _IslandCenters[16];
+                float _IslandInnerRadii[16];
+                float _IslandOuterRadii[16];
 
             TEXTURE2D(_HeightMap);    SAMPLER(sampler_HeightMap);
             TEXTURE2D(_DisplaceXMap); SAMPLER(sampler_DisplaceXMap);
@@ -143,18 +140,17 @@ Shader "PirateSeas/OceanSurface"
                 float displaceX = SAMPLE_TEXTURE2D_LOD(_DisplaceXMap, sampler_DisplaceXMap, uv, 0).x;
                 float displaceZ = SAMPLE_TEXTURE2D_LOD(_DisplaceZMap, sampler_DisplaceZMap, uv, 0).x;
 
-                // TODO: Calculate attenuation based on distance to island
-                // 1. Get the world position of this vertex (before displacement)
-                //    Hint: use TransformObjectToWorld(input.positionOS.xyz)
-                // 2. Calculate horizontal distance to _IslandCenter.xz (ignore Y)
-                // 3. Use smoothstep to interpolate between inner and outer radius
-                //    smoothstep(edge0, edge1, x) returns 0 when x < edge0, 1 when x > edge1, smooth curve between
-
                 float3 worldPosVert = TransformObjectToWorld(input.positionOS.xyz);
 
-                float dist = length(worldPosVert.xz - _IslandCenter.xz);
+                float attenuation = 1.0;
 
-                float attenuation = smoothstep(_IslandInnerRadius, _IslandOuterRadius, dist); 
+                for (int i = 0; i < _IslandCount; i++)
+                {
+                    float dist = length(worldPosVert.xz - _IslandCenters[i].xz);
+                    float smoothstepIsland = smoothstep(_IslandInnerRadii[i], _IslandOuterRadii[i], dist);
+
+                    attenuation = min(attenuation, smoothstepIsland);
+                }
 
                 float3 displaced = input.positionOS.xyz;
                 displaced.y += height * _DisplacementStrength * attenuation;

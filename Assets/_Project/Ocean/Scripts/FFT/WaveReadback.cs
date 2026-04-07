@@ -86,16 +86,55 @@ namespace PirateSeas.Ocean.FFT
             float u = (position.x / _meshSize) + 0.5f;
             float v = (position.z / _meshSize) + 0.5f;
 
-            Vector2 uv = new Vector2(u, v) * _textureResolution;
+            float fx = (u * _textureResolution) % _textureResolution;
+            float fz = (v * _textureResolution) % _textureResolution;
 
-            int px = (int)((uv.x % _textureResolution) + _textureResolution) % _textureResolution;
-            int py = (int)((uv.y % _textureResolution) + _textureResolution) % _textureResolution;
+            // Wrap to positive range
+            fx = ((fx % _textureResolution) + _textureResolution) % _textureResolution;
+            fz = ((fz % _textureResolution) + _textureResolution) % _textureResolution;
 
-            int index = (py * _textureResolution + px) * 2;
+            int x0 = (int)fx;
+            int z0 = (int)fz;
+            int x1 = (x0 + 1) % _textureResolution;
+            int z1 = (z0 + 1) % _textureResolution;
 
-            Vector3 displacement = new Vector3(_displaceXArray[index] * choppyStrength, _heightArray[index] * displacementStrength, _displaceZArray[index] * choppyStrength);
+            float tx = fx - x0;
+            float tz = fz - z0;
 
-            return displacement;
+            float h00 = SampleHeight(x0, z0);
+            float h10 = SampleHeight(x1, z0);
+            float h01 = SampleHeight(x0, z1);
+            float h11 = SampleHeight(x1, z1);
+            float height = Mathf.Lerp(Mathf.Lerp(h00, h10, tx), Mathf.Lerp(h01, h11, tx), tz) * displacementStrength;
+
+            float dx00 = SampleDisplaceX(x0, z0);
+            float dx10 = SampleDisplaceX(x1, z0);
+            float dx01 = SampleDisplaceX(x0, z1);
+            float dx11 = SampleDisplaceX(x1, z1);
+            float displaceX = Mathf.Lerp(Mathf.Lerp(dx00, dx10, tx), Mathf.Lerp(dx01, dx11, tx), tz) * choppyStrength;
+
+            float dz00 = SampleDisplaceZ(x0, z0);
+            float dz10 = SampleDisplaceZ(x1, z0);
+            float dz01 = SampleDisplaceZ(x0, z1);
+            float dz11 = SampleDisplaceZ(x1, z1);
+            float displaceZ = Mathf.Lerp(Mathf.Lerp(dz00, dz10, tx), Mathf.Lerp(dz01, dz11, tx), tz) * choppyStrength;
+
+            return new Vector3(displaceX, height, displaceZ);
+        }
+
+        private float SampleHeight(int x, int z)
+        {
+            return _heightArray[(z * _textureResolution + x) * 2];
+        }
+
+        private float SampleDisplaceX(int x, int z)
+        {
+            return _displaceXArray[(z * _textureResolution + x) * 2];
+        }
+
+        private float SampleDisplaceZ(int x, int z)
+        {
+            return _displaceZArray[(z * _textureResolution + x) * 2];
         }
     }
 }
