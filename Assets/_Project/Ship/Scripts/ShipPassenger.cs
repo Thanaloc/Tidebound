@@ -1,4 +1,5 @@
 using FPSController;
+using System;
 using UnityEngine;
 
 namespace Ship
@@ -16,14 +17,19 @@ namespace Ship
         private Vector3 _previousShipPosition;
         private Quaternion _previousShipRotation;
 
-        private void OnEnable()
-        {
-            _Motor.SetGravityEnabled(false);
-        }
+        public Action<bool> OnPlayerOnShipChanged;
 
-        private void OnDisable()
+        private bool _isOnShip;
+
+        public bool IsOnShip
         {
-            _Motor.SetGravityEnabled(true);
+            get => _isOnShip;
+            set
+            {
+                _isOnShip = value;
+                _Motor.SetGravityEnabled(!_isOnShip);
+                OnPlayerOnShipChanged?.Invoke(_isOnShip);
+            }
         }
 
         private void Start()
@@ -34,7 +40,17 @@ namespace Ship
 
         private void Update()
         {
-            Vector3 shipDelta = _Ship.position - _previousShipPosition;
+            Vector3 currentPos = _Ship.position;
+            Quaternion currentRot = _Ship.rotation;
+
+            if (!_isOnShip)
+            {
+                _previousShipPosition = currentPos;
+                _previousShipRotation = currentRot;
+                return;
+            }
+
+            Vector3 shipDelta = currentPos - _previousShipPosition;
             Quaternion deltaRotation = _Ship.rotation * Quaternion.Inverse(_previousShipRotation);
             Vector3 offsetFromShip = transform.position - _Ship.position;
             Vector3 rotatedOffset = deltaRotation * offsetFromShip;
@@ -43,8 +59,8 @@ namespace Ship
             _CharacterController.Move(shipDelta + rotationDelta);
             transform.rotation = deltaRotation * transform.rotation;
 
-            _previousShipPosition = _Ship.position;
-            _previousShipRotation = _Ship.rotation;
+            _previousShipPosition = currentPos;
+            _previousShipRotation = currentRot;
         }
     }
 }

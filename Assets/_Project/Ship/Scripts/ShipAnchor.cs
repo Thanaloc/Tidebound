@@ -10,6 +10,8 @@ namespace Ship
 
         public bool HoldInteraction => false;
 
+        public string InteractionText => "Anchor";
+
         public void OnInteractionTriggered(PlayerInteraction interact)
         {
             if (_ShipMovement.IsAnchorDown)

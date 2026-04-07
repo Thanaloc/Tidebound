@@ -18,6 +18,8 @@ namespace Ship
 
         public bool HoldInteraction => true;
 
+        public string InteractionText => "Wheel";
+
         public void OnInteractionTriggered(PlayerInteraction interact)
         {
             if (_playerInteraction == null)
@@ -53,8 +55,15 @@ namespace Ship
             }
         }
 
-        public void OnRaycastHitEnter() { }
-        public void OnRaycastHitExit() { }
+        public void OnRaycastHitEnter()
+        {
+
+        }
+
+        public void OnRaycastHitExit() 
+        { 
+
+        }
 
         private void Update()
         {

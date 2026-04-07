@@ -53,12 +53,12 @@ namespace PirateSeas.Island
         {
             float t = Mathf.InverseLerp(config.MinSize, config.MaxSize, size);
 
-            _peakOffset = new Vector2( Random.Range(-_size * 0.15f, _size * 0.15f),Random.Range(-_size * 0.15f, _size * 0.15f));
-
             _size = size;
             _seed = seed;
             _islandRegistry = registry;
 
+
+            _peakOffset = new Vector2(Random.Range(-_size * 0.15f, _size * 0.15f), Random.Range(-_size * 0.15f, _size * 0.15f));
             _innerRadius = _size * config.InnerRadiusRatio;
             _outerRadius = _size * config.OuterRadiusRatio;
             _baseAmplitude = _size * config.AmplitudeRatio;

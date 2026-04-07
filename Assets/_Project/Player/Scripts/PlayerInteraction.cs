@@ -1,6 +1,7 @@
 using FPSController;
 using Player;
 using Ship;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -12,6 +13,8 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField] private PlayerMotor _PlayerMotor;
     [SerializeField] private PlayerInputHandler _PlayerInputHandler;
     [SerializeField] private ShipPassenger _ShipPassenger;
+
+    [SerializeField] private TextMeshProUGUI _InteractableUI;
 
     [SerializeField] private float _InteractionRange = 3f;
 
@@ -48,7 +51,10 @@ public class PlayerInteraction : MonoBehaviour
                 _currentLookedInteractable.OnInteractionTriggered(this);
 
                 if (_currentLookedInteractable.HoldInteraction)
+                {
                     _currentCapturedInteractable = _currentLookedInteractable;
+                    _InteractableUI.gameObject.SetActive(false);
+                }
             }
         }
 
@@ -73,6 +79,8 @@ public class PlayerInteraction : MonoBehaviour
 
             interactable.OnRaycastHitEnter();
             _currentLookedInteractable = interactable;
+            _InteractableUI.text = interactable.InteractionText;
+            _InteractableUI.gameObject.SetActive(true);
         }
         else
         {
@@ -84,6 +92,8 @@ public class PlayerInteraction : MonoBehaviour
             {
                 _currentLookedInteractable.OnRaycastHitExit();
                 _currentLookedInteractable = null;
+
+                _InteractableUI.gameObject.SetActive(false);
             }
         }
     }
