@@ -160,7 +160,9 @@ namespace PirateSeas.Ocean
             );
 
             if (_IslandRegistry != null)
+            {
                 displacement *= _IslandRegistry.GetAttenuationAt(x, z);
+            }
 
             return displacement;
         }

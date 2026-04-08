@@ -50,7 +50,7 @@ namespace Ship
                 _playerInteraction.PlayerMotor.SetJumpEnabled(false);
                 _playerInteraction.PlayerMotor.SetHeadBobEnabled(false);
 
-                _movePlayerCoroutine = SlidePlayerCoroutine();
+                _movePlayerCoroutine = _playerInteraction.SlideToPosition(_PlayerWheelPosition, _PutPlayerOnWheelSpeed, SlidePlayerCoroutineDone);
                 StartCoroutine(_movePlayerCoroutine);
             }
         }
@@ -74,28 +74,8 @@ namespace Ship
                 _ShipMovement.SetRudder(0);
         }
 
-        private IEnumerator SlidePlayerCoroutine()
+        private void SlidePlayerCoroutineDone()
         {
-            _playerInteraction.ShipPassenger.enabled = false;
-            _playerInteraction.PlayerMotor.SetGravityEnabled(false);
-
-            CharacterController characterController = _playerInteraction.PlayerMotor.GetCharacterController();
-            characterController.enabled = false;
-
-            Transform playerTransform = characterController.transform;
-
-            while (Vector3.Distance(playerTransform.position, _PlayerWheelPosition.position) > 0.01f)
-            {
-                playerTransform.position = Vector3.MoveTowards(playerTransform.position, _PlayerWheelPosition.position, _PutPlayerOnWheelSpeed * Time.deltaTime);
-                yield return null;
-            }
-
-            playerTransform.position = _PlayerWheelPosition.position;
-            characterController.enabled = true;
-
-            _playerInteraction.PlayerMotor.SetGravityEnabled(true);
-            _playerInteraction.ShipPassenger.enabled = true;
-
             _isPlayerInPosition = true;
         }
     }

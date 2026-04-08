@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using FPSController;
 using Player;
 using Ship;
@@ -96,5 +98,23 @@ public class PlayerInteraction : MonoBehaviour
                 _InteractableUI.gameObject.SetActive(false);
             }
         }
+    }
+
+    public IEnumerator SlideToPosition(Transform targetTransform, float speed, Action callback)
+    {
+        PlayerMotor.GetCharacterController().enabled = false;
+
+        Transform playerTransform = transform;
+
+        while (Vector3.Distance(playerTransform.position, targetTransform.position) > 0.01f)
+        {
+            playerTransform.position = Vector3.MoveTowards(playerTransform.position, targetTransform.position, speed * Time.deltaTime);
+            yield return null;
+        }
+
+        playerTransform.position = targetTransform.position;
+        PlayerMotor.GetCharacterController().enabled = true;
+
+        callback?.Invoke();
     }
 }

@@ -28,6 +28,12 @@ namespace Ship
             {
                 _isOnShip = value;
                 _Motor.SetGravityEnabled(!_isOnShip);
+
+                if (_isOnShip)
+                    _CharacterController.transform.SetParent(_Ship);
+                else
+                    _CharacterController.transform.SetParent(null);
+
                 OnPlayerOnShipChanged?.Invoke(_isOnShip);
             }
         }
@@ -43,7 +49,7 @@ namespace Ship
             Vector3 currentPos = _Ship.position;
             Quaternion currentRot = _Ship.rotation;
 
-            if (!_isOnShip)
+            if (!_isOnShip || !_CharacterController.enabled)
             {
                 _previousShipPosition = currentPos;
                 _previousShipRotation = currentRot;
