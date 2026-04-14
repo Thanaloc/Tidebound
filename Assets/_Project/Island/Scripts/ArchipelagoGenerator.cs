@@ -1,3 +1,4 @@
+using Ship;
 using UnityEngine;
 
 namespace PirateSeas.Island
@@ -16,9 +17,23 @@ namespace PirateSeas.Island
 
         [SerializeField] private IslandConfigSO _IslandConfig;
 
+        [SerializeField] private Transform _PlayerRef;
+        [SerializeField] private Transform _BoatRef;
+
+        [SerializeField] private ShipMovement _ShipMovement;
+
         private void Start()
         {
-            SpawnIsland(Vector3.zero, _MaxIslandSize * 1.2f);
+            float spawnIslandSize = _MaxIslandSize;
+
+            SpawnIsland(Vector3.zero, spawnIslandSize);
+
+            _BoatRef.transform.position = new Vector3(spawnIslandSize * 0.45f, 0f, 0f);
+            _ShipMovement.SetAnchor(true);
+
+            Vector3 rayOrigin = new Vector3(0f, 200f, 0f);
+            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 400f))
+                _PlayerRef.transform.position = hit.point + Vector3.up * 1f;
 
             int remaining = _IslandNumber - 1;
             int islandIndex = 0;

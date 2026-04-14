@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: PlayerSettings
   m_EditorClassIdentifier: Custom.FPSController::FPSController.FPSControllerSettingsSO
   SprintFOVMultiplier: 0.17
-  JumpForce: 5
+  JumpForce: 7
+  CoyoteTime: 0.12
+  JumpBufferTime: 0.1
+  AirControlMultiplier: 0.4

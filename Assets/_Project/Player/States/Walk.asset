@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Custom.FPSController::FPSController.PlayerStateDataSO
   MoveSpeed: 5
   ColliderHeight: 2
+  Acceleration: 50
+  Deceleration: 35
   CameraHeight: 1.6
   BobFrequency: 10
   BobAmplitude: 0.0016666665

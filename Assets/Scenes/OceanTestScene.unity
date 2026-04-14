@@ -2053,6 +2053,8 @@ MonoBehaviour:
   _InputHandler: {fileID: 1895147491}
   _CameraHolder: {fileID: 547930703}
   _MouseSensitivity: 0.1
+  _EnableSmoothing: 0
+  _SmoothTime: 0.03
 --- !u!114 &1895147490
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2069,6 +2071,7 @@ MonoBehaviour:
   _Camera: {fileID: 547930702}
   _CameraHolder: {fileID: 139952607}
   _HeadBob: {fileID: 1895147487}
+  _LandingImpact: {fileID: 0}
   _Settings: {fileID: 11400000, guid: a7c67fba672cc3d4a8b22e3cdff38ba5, type: 2}
   _InputHandler: {fileID: 1895147491}
 --- !u!114 &1895147491
@@ -2146,6 +2149,9 @@ MonoBehaviour:
   _Jitter: 50
   _IslandsParent: {fileID: 2092450817}
   _IslandConfig: {fileID: 11400000, guid: 06222d74c1efde2408804262592df615, type: 2}
+  _PlayerRef: {fileID: 1895147485}
+  _BoatRef: {fileID: 1189442510}
+  _ShipMovement: {fileID: 1189442508}
 --- !u!114 &2092450816
 MonoBehaviour:
   m_ObjectHideFlags: 0
