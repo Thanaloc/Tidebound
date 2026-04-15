@@ -27,7 +27,7 @@ namespace Ship
             set
             {
                 _isOnShip = value;
-                _Motor.SetGravityOverride(!_isOnShip);
+                _Motor.SetGravityEnabled(!_isOnShip);
 
                 if (_isOnShip)
                     _CharacterController.transform.SetParent(_Ship);

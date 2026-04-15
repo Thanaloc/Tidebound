@@ -7,7 +7,7 @@
       "dependencies": {
         "com.unity.inputsystem": "1.11.2"
       },
-      "hash": "25ce9ac56a30046934bf202e821b41173bed0d54"
+      "hash": "b3a835e1b85581f8cac51a2df65b571092820773"
     },
     "com.unity.ai.navigation": {
       "version": "2.0.10",
